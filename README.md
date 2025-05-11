@@ -158,65 +158,71 @@ python web_app.py  # then open http://localhost:5000
 ## web_app.py
 
 PRIMARY TECHNICAL RESPONSIBILITY FROM A USER PERSPECTIVE:
-This file provides functionality for processing project files, generating summaries, and updating README.md files. It is primarily used through a web interface where users can initiate project processing and view the results.
+This file provides logging, file processing, and project summarization functionalities for a web application, enabling users to generate summaries for project files and view real-time log updates.
 
 KEY USER-FACING COMPONENTS AND USAGE:
-- **`get_project_files`**: Retrieves a list of project files from a specified root directory, filtering by supported file extensions and exclusion rules. Users can call this function to gather files for further processing or analysis by providing a `root_path`.
-- **`index`**: Generates and returns an HTML response listing project files relative to the root directory. Users interact with this function indirectly through a web interface.
-- **`generate`**: Generates a summary for a specified file and injects it into the corresponding README.md file. Users can call this function by providing a file `path` and optionally specifying an `llm_mode`.
-- **`process_project`**: Processes project files, generates summaries, and updates README.md files. Users typically initiate this function through a web interface, optionally specifying an `llm_mode`.
+- **`web_log`**: Logs messages to both the standard error stream and an internal buffer for potential UI display, providing a timestamp for each log entry. Users can call this function to log important events or messages during web application execution.
+- **`capture_stderr_globally`**: Captures the stderr output of a code block while still displaying it on the actual stderr, allowing users to both log and inspect stderr messages. It is typically used within a `with` statement.
+- **`index`**: Generates and returns an HTML response listing project files relative to the root directory, serving as the primary entry point for users. Users interact with this function indirectly by accessing the root path of the application.
+- **`generate`**: Generates a summary for a specified file and injects it into the corresponding README.md file. It is typically called via a web request to process a file with a chosen LLM mode.
+- **`process_project`**: Processes project files by summarizing them and updating the corresponding README.md files. It is typically called when a user initiates project processing through a web application interface.
+- **`log_stream`**: Provides a stream of logs and status updates as server-sent events, allowing users to receive real-time updates on the application's logs and processing status. Users can call this function to establish a continuous log stream.
 <!-- END summary: web_app.py -->
-
-<!-- BEGIN summary: readme_sync.py -->
-## readme_sync.py
-
-PRIMARY TECHNICAL RESPONSIBILITY FROM A USER PERSPECTIVE:
-This file provides a set of functionalities for processing and summarizing code files, primarily through the use of Large Language Models (LLMs) and Abstract Syntax Tree (AST) analysis. It enables users to analyze codebases, generate technical summaries, and manage README files.
-
-KEY USER-FACING COMPONENTS AND USAGE:
-- **`extract_code_units`**: Extracts code units (functions, classes, etc.) from a given file based on its type and size. It handles chunking for large files and uses different extraction methods for various file extensions.
-- **`summarise_file`**: Generates a technical summary of a given file by analyzing its content and utilizing a Large Language Model (LLM). Users can call this function to obtain a concise summary of a file's primary technical responsibility and key components.
-- **`process_paths`**: Processes a list of file or directory paths to identify files for summarization, cleans up existing README files, and then summarizes the identified files using a chosen LLM mode. Users interact with this function by providing initial paths and responding to prompts.
-- **`main`**: Serves as the entry point for a command-line interface (CLI) tool that scans a codebase for specific files to process based on user-provided paths or a root directory. It allows users to specify file paths or directories to process, filtering based on file extensions and exclusion patterns.
-<!-- END summary: readme_sync.py -->
 
 <!-- BEGIN summary: local_llm.py -->
 ## local_llm.py
 
 PRIMARY TECHNICAL RESPONSIBILITY FROM A USER PERSPECTIVE:
-This file provides functionality for interacting with a local Ollama model via HTTP, allowing users to make calls to the model and preload it into memory for efficient processing.
+This file provides functionality for interacting with a local Ollama model via HTTP, allowing users to make calls to the model and preload it into memory for later use. It handles retries, caching, and error handling to provide a robust interface.
 
 KEY USER-FACING COMPONENTS AND USAGE:
-- **`llm_call` Function**: Enables users to send a prompt to the Ollama model and receive a response. It handles caching, retries, and error management internally, making it a straightforward interface for integrating AI model responses into applications.
-- **`preload_model` Function**: Allows users to preload the Ollama model into memory before starting processing tasks, ensuring it's ready for use and avoiding potential delays or errors during concurrent processing.
+- **`llm_call` function**: Makes a blocking call to the Ollama model with a given prompt, handling retries and caching internally. Users can call this function with a simple query or complex prompt to receive a response from the model.
+- **`preload_model` function**: Preloads the Ollama model into memory before it's needed, ensuring it's ready for parallel processing tasks. Users can call this function to initialize the model as a preparatory step in their workflow or pipeline.
 <!-- END summary: local_llm.py -->
 
 <!-- BEGIN summary: remote_llm.py -->
 ## remote_llm.py
 
 PRIMARY TECHNICAL RESPONSIBILITY FROM A USER PERSPECTIVE:
-This file provides functionality to interact with the OpenAI API using the Together API key and base URL, enabling users to make API requests and obtain responses from a remote LLM model. It handles client initialization, API calls, caching, and error handling.
+This file provides utility functions for logging, timestamping, and interacting with the OpenAI API or a compatible endpoint through a configured client instance. It enables users to log messages, retrieve the current timestamp, and make calls to a remote LLM model.
 
 KEY USER-FACING COMPONENTS AND USAGE:
-- **`get_openai_client()`**: Initializes and returns an OpenAI client instance configured with the Together API key and base URL. Users call this function before making API requests to ensure proper client configuration.
-- **`llm_call_remote(prompt, model_name=None)`**: Makes a blocking call to the Together AI API with the given prompt and model name, providing a cached response or an error message after retrying on failures. Users utilize this function to obtain responses from a remote LLM model.
+- **`get_timestamp()`**: Retrieves the current date and time in a human-readable format. Users can call this function to get the current timestamp for logging or displaying purposes.
+- **`log_message(message, file=sys.stderr)`**: Logs a message with a timestamp prefix to the standard error stream or a specified file. Users can utilize this function for tracking events or errors in their application.
+- **`get_openai_client()`**: Returns a configured OpenAI client instance. Users need to call this function to obtain a client instance before making API requests to the OpenAI API or a compatible endpoint.
+- **`llm_call_remote(prompt, model_name=None)`**: Makes a blocking call to the Together AI API to get a response to a given prompt from a remote LLM model. Users can use this function to get responses from the LLM model for their input prompts.
 <!-- END summary: remote_llm.py -->
 
 <!-- BEGIN summary: prompts.py -->
 ## prompts.py
 
 PRIMARY TECHNICAL RESPONSIBILITY FROM A USER PERSPECTIVE:
-This file provides a set of functions for generating Markdown summaries and prompts for documenting code units, files, and modules, primarily for README.md files, focusing on user-facing aspects and integration.
+This file provides a set of functions for generating Markdown summaries and prompts for documenting code files, focusing on user-facing aspects and integration. The primary role is to aid users in creating concise technical summaries for README.md files.
 
 KEY USER-FACING COMPONENTS AND USAGE:
-- **`get_llm_extract_generic_units_prompt`**: Generates a prompt for extracting top-level code units from a source code snippet. Users can call it with the language name, file path, extension, and source code snippet to obtain a structured prompt.
-- **`get_python_syntax_error_prompt`**: Creates a Markdown assessment for a Python file with syntax errors. Users can call it with the file name, language extension, and code snippet to get a formatted README.md section.
-- **`get_python_module_prompt`**: Generates a Markdown summary for a Python module. Users can call it with the module kind, name, language extension, and code snippet to obtain a structured summary.
-- **`get_python_class_prompt`**: Creates a Markdown template for documenting a Python class. Users can call it with the class kind, name, language extension, and code snippet to get a summary.
-- **`get_python_function_prompt`**: Generates a Markdown summary for a Python function or method. Users can call it with the function kind, name, language extension, and code snippet to obtain a standardized summary.
-- **`get_generic_unit_prompt`**: Creates a Markdown template for documenting a generic code unit. Users can call it with the language extension, unit kind, name, and code snippet to get a structured summary.
-- **`get_file_chunk_prompt`**: Generates a prompt for summarizing a code segment from a file. Users can call it with the file path, code chunk name, language extension, and code snippet to obtain a tailored prompt.
-- **`get_default_file_summary_prompt`**: Creates a structured Markdown prompt for summarizing a source code file. Users can call it with the file name, language extension, and code snippet to get a formatted prompt.
-- **`get_rollup_prompt`**: Generates a concise Markdown summary of a software file based on provided text blurbs. Users can call it with a list of blurbs to obtain a summary focusing on user-facing aspects.
-- **`get_direct_summary_retry_prompt`**: Creates a prompt for retrying the generation of a concise Markdown summary of a code file. Users can call it with the file path, extension, and file content snippet to improve the initial summary.
+- **`get_llm_extract_generic_units_prompt`**: Generates a prompt for extracting top-level code units from a given source code snippet. Users call this function by providing the language name, file path, file extension, and source code snippet to create a structured prompt for code analysis tasks.
+- **`get_python_syntax_error_prompt`**: Creates a Markdown assessment for a Python file with syntax errors. Users utilize this function by passing the file name, language extension, and the Python code snippet to obtain a formatted report.
+- **`get_python_module_prompt`**: Generates a Markdown template for documenting a Python module. Users call this function with the module's kind, name, language extension, and source code snippet to create a summary for a README.md file.
+- **`get_python_class_prompt`**: Produces a Markdown template for documenting a Python class. Users can call this function with the class's kind, name, language extension, and source code snippet to generate a summary focusing on user interaction and public API.
+- **`get_python_function_prompt`**: Creates a Markdown summary for a Python function or method. Users utilize this function by providing the kind, name, language extension, and source code snippet to document their Python code.
+- **`get_generic_unit_prompt`**: Generates a Markdown template for documenting a generic code unit. Users can call this function with the language extension, kind, name, and source code snippet to create README.md summaries for various code units.
+- **`get_file_chunk_prompt`**: Generates a prompt for summarizing a given code segment from a file. Users call this function with the file path, code chunk identifier, language extension, and source code snippet to aid in creating concise technical summaries.
+- **`get_default_file_summary_prompt`**: Produces a structured Markdown prompt for creating a file overview in a README.md. Users utilize this function by providing the file name, language extension, and source code snippet to obtain a template for summarizing a source code file's purpose and key functionalities.
+- **`get_rollup_prompt`**: Generates a concise Markdown summary of a software file based on provided text blurbs. Users call this function with a list of blurbs describing different parts of a file to create a README.md summary focusing on user-facing aspects.
+- **`get_direct_summary_retry_prompt`**: Creates a prompt for generating a concise Markdown summary of a code file, particularly for retry attempts. Users or automated systems call this function with the file path, extension, and file content snippet to retry generating a summary after an initial failure.
 <!-- END summary: prompts.py -->
+
+<!-- BEGIN summary: readme_sync.py -->
+## readme_sync.py
+
+PRIMARY TECHNICAL RESPONSIBILITY FROM A USER PERSPECTIVE:
+This file is primarily responsible for processing files or directories to generate and update README content with summaries of the files' content and technical responsibilities. It provides a command-line interface (CLI) for users to interact with.
+
+KEY USER-FACING COMPONENTS AND USAGE:
+- **`main`**: The entry point of the application, allowing users to process specific files or scan a codebase root directory for files to synchronize README content. Users can provide command-line arguments to specify files, directories, or configuration options.
+- **`process_paths`**: Processes a list of file or directory paths to identify files for summarization, clean up existing README files, and generate new summaries using a chosen LLM mode. Users can run this function in interactive or non-interactive mode.
+- **`summarise_file`**: Generates a summary of a given file by breaking it into chunks, analyzing each chunk using a Large Language Model (LLM), and then rolling up the results into a final summary. Users can call this function to obtain a technical overview of a file's content and structure.
+- **`extract_code_units`**: Extracts code units from a given file based on its type and size, handling large files by chunking them into smaller parts. Users can call this function to process various file types for further analysis or processing.
+- **`log_message`**: Allows users to log messages with a timestamp prefix, typically for tracking events or debugging purposes. Users can call this function to output messages to the standard error stream or a specified file.
+- **`get_timestamp`**: Retrieves the current date and time in a human-readable format. Users can call this function to obtain a timestamp for logging, recording events, or displaying the current time in their application.
+<!-- END summary: readme_sync.py -->
