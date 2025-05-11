@@ -12,6 +12,9 @@ cat > "$HOOK" <<'EOF'
 # post‑commit: refresh README summaries for changed files
 set -euo pipefail
 
+# Determine the repository root
+REPO_ROOT=$(git rev-parse --show-toplevel)
+
 # Activate virtual environment if it exists
 VENV_ACTIVATE="$REPO_ROOT/.venv/bin/activate"
 if [ -f "$VENV_ACTIVATE" ]; then
