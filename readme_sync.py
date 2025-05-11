@@ -806,7 +806,7 @@ def _inject(readme: Path, fname: str, md: str) -> None:
         body = ""  # Proceed with empty, will try to create/append
 
     pattern = re.compile(re.escape(start) + ".*?" + re.escape(end), re.S)
-    repl = f"{start}\n{md}\n{end}"
+    repl = f"{start}\n## {fname}\n\n{md}\n{end}"
 
     new_body = ""
     if pattern.search(body):
