@@ -1176,6 +1176,56 @@ def process_paths(
     # The current pre-summarization cleanup handles files that are no longer valid *within their specific directory's README*.
 
 
+def process_single_file(file_path: Path, llm_mode: str) -> bool:
+    """
+    Process a single file's README.md summary without any interactive prompts or directory scanning.
+    Designed for efficient use in Git hooks or CI/CD pipelines.
+
+    Args:
+        file_path: Path to the single file to process
+        llm_mode: "local" or "remote" for LLM processing
+
+    Returns:
+        bool: True if successful, False otherwise
+    """
+    if not file_path.exists() or not file_path.is_file():
+        log_message(f"Error: File {file_path} does not exist or is not a file.")
+        return False
+
+    ext = file_path.suffix.lstrip(".")
+    if ext not in INCLUDE_EXTS:
+        log_message(f"Skipping file with unsupported extension: {file_path}")
+        return False
+
+    if is_path_excluded(file_path, EXCLUDE_DIR_ITEMS, EXCLUDE_FILE_ITEMS):
+        log_message(f"Skipping excluded file: {file_path}")
+        return False
+
+    # Convert llm_mode string to the numeric choice expected by summarise_file
+    llm_mode_choice = "1" if llm_mode == "local" else "2"
+
+    try:
+        log_message(f"Processing single file: {file_path}")
+        md_summary = summarise_file(file_path, llm_mode_choice)
+
+        if md_summary and not md_summary.startswith("Error:"):
+            readme_file_path = file_path.parent / "README.md"
+            readme_lock = _get_readme_lock(readme_file_path)
+            with readme_lock:
+                _inject(readme_file_path, file_path.name, md_summary)
+            log_message(f"Successfully updated {readme_file_path} for {file_path.name}")
+            return True
+        elif md_summary:  # Error occurred
+            log_message(f"Error summarizing {file_path.name}: {md_summary[:100]}...")
+            return False
+        else:  # No summary
+            log_message(f"No summary generated for {file_path.name}")
+            return False
+    except Exception as e:
+        log_message(f"Error processing {file_path}: {e}")
+        return False
+
+
 def main(argv=None):
     ap = argparse.ArgumentParser("readme-sync CLI")
     ap.add_argument(
@@ -1197,7 +1247,17 @@ def main(argv=None):
         default=None,  # Default to None, so we can check if it was explicitly set
         help="Specify LLM mode ('local' or 'remote'). Used with --non-interactive. Defaults to 'remote' if --non-interactive is set and this is not.",
     )
+    ap.add_argument(
+        "--single-file-mode",
+        action="store_true",
+        help="Process files individually with optimized path for post-commit hooks. Implies --non-interactive.",
+    )
     ns = ap.parse_args(argv)
+
+    # If single-file-mode is used, force non-interactive mode
+    if ns.single_file_mode:
+        ns.non_interactive = True
+
     root_path = Path(ns.root).resolve()
 
     if not root_path.is_dir():
@@ -1206,6 +1266,27 @@ def main(argv=None):
         )
         return
 
+    # Set default LLM mode if not specified (prefer remote for non-interactive)
+    if ns.llm_mode is None:
+        ns.llm_mode = "remote" if ns.non_interactive else "local"
+
+    if ns.single_file_mode:
+        if not ns.paths:
+            log_message("Error: --single-file-mode requires specifying file paths.")
+            return
+
+        success_count = 0
+        for file_path_str in ns.paths:
+            file_path = Path(file_path_str).resolve()
+            if process_single_file(file_path, ns.llm_mode):
+                success_count += 1
+
+        log_message(
+            f"Processed {success_count}/{len(ns.paths)} files in single-file mode"
+        )
+        return
+
+    # Original code path for regular (non-single-file) mode
     log_message(f"DEBUG: Excluding directory items: {EXCLUDE_DIR_ITEMS}")
     log_message(f"DEBUG: Excluding file items: {EXCLUDE_FILE_ITEMS}")
 
