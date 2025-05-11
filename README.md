@@ -173,24 +173,24 @@ KEY USER-FACING COMPONENTS AND USAGE:
 ## local_llm.py
 
 PRIMARY TECHNICAL RESPONSIBILITY FROM A USER PERSPECTIVE:
-This file provides functionality for interacting with a local Ollama model via HTTP, allowing users to make calls to the model and preload it into memory for later use. It handles retries, caching, and error handling to provide a robust interface.
+This file provides functionality for interacting with a local Ollama model, allowing users to send prompts and preload the model for efficient processing.
 
 KEY USER-FACING COMPONENTS AND USAGE:
-- **`llm_call` function**: Makes a blocking call to the Ollama model with a given prompt, handling retries and caching internally. Users can call this function with a simple query or complex prompt to receive a response from the model.
-- **`preload_model` function**: Preloads the Ollama model into memory before it's needed, ensuring it's ready for parallel processing tasks. Users can call this function to initialize the model as a preparatory step in their workflow or pipeline.
+- **`llm_call` function**: Sends a prompt to the Ollama model and returns its response. Users can utilize this function to query the model with specific input prompts, handling the returned response or potential error messages in their application logic.
+- **`preload_model` function**: Preloads the Ollama model into memory, ensuring it's ready for use. Users can call this function before starting tasks that require the model to reduce initial processing delays.
 <!-- END summary: local_llm.py -->
 
 <!-- BEGIN summary: remote_llm.py -->
 ## remote_llm.py
 
 PRIMARY TECHNICAL RESPONSIBILITY FROM A USER PERSPECTIVE:
-This file provides utility functions for logging, timestamping, and interacting with the OpenAI API or a compatible endpoint through a configured client instance. It enables users to log messages, retrieve the current timestamp, and make calls to a remote LLM model.
+This file provides functionality for logging, timestamping, and interacting with a remote Large Language Model (LLM) via the Together AI API, enabling users to log events, generate text, and retrieve information.
 
 KEY USER-FACING COMPONENTS AND USAGE:
-- **`get_timestamp()`**: Retrieves the current date and time in a human-readable format. Users can call this function to get the current timestamp for logging or displaying purposes.
-- **`log_message(message, file=sys.stderr)`**: Logs a message with a timestamp prefix to the standard error stream or a specified file. Users can utilize this function for tracking events or errors in their application.
-- **`get_openai_client()`**: Returns a configured OpenAI client instance. Users need to call this function to obtain a client instance before making API requests to the OpenAI API or a compatible endpoint.
-- **`llm_call_remote(prompt, model_name=None)`**: Makes a blocking call to the Together AI API to get a response to a given prompt from a remote LLM model. Users can use this function to get responses from the LLM model for their input prompts.
+- **`get_timestamp()`**: Retrieves the current date and time in a human-readable format (YYYY-MM-DD HH:MM:SS), useful for logging or displaying the current time.
+- **`log_message(message, file)`**: Logs a message with a timestamp prefix to a specified file stream (defaulting to standard error), useful for tracking events or errors.
+- **`get_openai_client()`**: Initializes and returns a configured OpenAI client instance for interacting with a remote LLM, requiring the `TOGETHER_API_KEY` environment variable to be set.
+- **`llm_call_remote(prompt, model_name)`**: Makes a blocking call to the Together AI API with a given prompt and model name, providing a cached and retry mechanism for robustness, useful for generating text or retrieving information from the LLM.
 <!-- END summary: remote_llm.py -->
 
 <!-- BEGIN summary: prompts.py -->
