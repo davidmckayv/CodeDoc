@@ -835,7 +835,9 @@ def _inject(readme: Path, fname: str, md: str) -> None:
         print(f"ERROR_INJECT: Failed to write to {readme}: {e}", file=sys.stderr)
 
 
-def process_paths(paths: Iterable[Path], root: Path) -> None:
+def process_paths(
+    paths: Iterable[Path], root: Path, non_interactive: bool, llm_mode: str | None
+) -> None:
     # Determine unique directories that might contain READMEs needing cleanup/updates.
     global _TOKEN_ENCODING
     global _TOTAL_TOKEN_COUNT
@@ -998,20 +1000,49 @@ def process_paths(paths: Iterable[Path], root: Path) -> None:
         )
 
     # Finally, ask for Y/N Confirmation Prompt
-    proceed = input("\nProceed with LLM summarization? (Y/N): ").strip().lower()
+    if non_interactive:
+        proceed = "y"
+        print(
+            "Non-interactive mode: Defaulting to proceed with summarization.",
+            file=sys.stderr,
+        )
+    else:
+        proceed = input("\nProceed with LLM summarization? (Y/N): ").strip().lower()
+
     if proceed != "y":
         print("LLM summarization aborted by user.", file=sys.stderr)
         return  # Exit process_paths function
 
-    # Ask user to choose between local and remote LLM processing
-    llm_choice_prompt = (
-        "\nChoose LLM processing mode:\n"
-        "1. Local (runs on your machine, can be slower)\n"
-        "2. Remote (uses Together AI API, faster, requires TOGETHER_API_KEY, may have costs)\n"
-        "Enter choice (1 or 2): "
-    )
-    llm_mode_choice = input(llm_choice_prompt).strip()
+    # Determine LLM mode choice
+    if non_interactive:
+        if llm_mode == "local":
+            llm_mode_choice = "1"
+            print(
+                "Non-interactive mode: Using LLM mode 'local' as specified.",
+                file=sys.stderr,
+            )
+        elif llm_mode == "remote":
+            llm_mode_choice = "2"
+            print(
+                "Non-interactive mode: Using LLM mode 'remote' as specified.",
+                file=sys.stderr,
+            )
+        else:  # llm_mode is None or an unexpected value, default to remote for non-interactive
+            llm_mode_choice = "2"
+            print(
+                "Non-interactive mode: Defaulting to LLM mode 'remote'.",
+                file=sys.stderr,
+            )
+    else:
+        llm_choice_prompt = (
+            "\nChoose LLM processing mode:\n"
+            "1. Local (runs on your machine, can be slower)\n"
+            "2. Remote (uses Together AI API, faster, requires TOGETHER_API_KEY, may have costs)\n"
+            "Enter choice (1 or 2): "
+        )
+        llm_mode_choice = input(llm_choice_prompt).strip()
 
+    # Validate and set up based on llm_mode_choice (common for both interactive and non-interactive)
     if llm_mode_choice == "1":
         print("Local LLM mode selected.", file=sys.stderr)
         DEFAULT_MAX_WORKERS_ACTUAL = 2
@@ -1025,7 +1056,10 @@ def process_paths(paths: Iterable[Path], root: Path) -> None:
                 "ERROR: Remote LLM mode selected, but TOGETHER_API_KEY environment variable is not set.",
                 file=sys.stderr,
             )
-            print("Please set TOGETHER_API_KEY or choose local mode.", file=sys.stderr)
+            print(
+                "Please set TOGETHER_API_KEY or choose local mode (if interactive) or ensure key is in environment (if non-interactive).",
+                file=sys.stderr,
+            )
             return  # Abort if API key is missing for remote mode
         DEFAULT_MAX_WORKERS_ACTUAL = 4
         MAX_WORKERS = int(
@@ -1190,6 +1224,17 @@ def main(argv=None):
         nargs="*",
         help="Specific file paths to process. If not provided, scans --root.",
     )
+    ap.add_argument(
+        "--non-interactive",
+        action="store_true",
+        help="Run in non-interactive mode, defaulting to proceed and specified/default LLM mode.",
+    )
+    ap.add_argument(
+        "--llm-mode",
+        choices=["local", "remote"],
+        default=None,  # Default to None, so we can check if it was explicitly set
+        help="Specify LLM mode ('local' or 'remote'). Used with --non-interactive. Defaults to 'remote' if --non-interactive is set and this is not.",
+    )
     ns = ap.parse_args(argv)
     root_path = Path(ns.root).resolve()
 
@@ -1293,7 +1338,7 @@ def main(argv=None):
     for f_idx, f_path in enumerate(files_to_process):
         print(f"  [{f_idx+1}/{len(files_to_process)}] {f_path}", file=sys.stderr)
 
-    process_paths(files_to_process, root_path)
+    process_paths(files_to_process, root_path, ns.non_interactive, ns.llm_mode)
 
 
 if __name__ == "__main__":
