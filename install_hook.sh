@@ -30,6 +30,38 @@ log_message "set -euo pipefail activated."
 REPO_ROOT=\$(git rev-parse --show-toplevel)
 log_message "HOOK SCRIPT: REPO_ROOT is \$REPO_ROOT"
 
+# Get the list of modified files in this commit
+MODIFIED_FILES=\$(git diff-tree --no-commit-id --name-only -r HEAD)
+log_message "HOOK SCRIPT: Modified files in this commit: \$MODIFIED_FILES"
+
+# Check if there are any files to process (excluding README.md files)
+PROCESS_FILES=()
+for file in \$MODIFIED_FILES; do
+  # Skip README.md files
+  if [[ "\$file" == *"README.md"* ]]; then
+    log_message "HOOK SCRIPT: Skipping README.md file: \$file"
+    continue
+  fi
+  
+  # Only process files with extensions that readme_sync.py cares about
+  file_ext="\${file##*.}"
+  case "\$file_ext" in
+    py|js|jsx|ts|tsx|c|h|cpp|hpp|cxx|hxx|java|cs|go|php|rb)
+      PROCESS_FILES+=("\$file")
+      log_message "HOOK SCRIPT: Adding file to process: \$file"
+      ;;
+    *)
+      log_message "HOOK SCRIPT: Skipping non-code file: \$file"
+      ;;
+  esac
+done
+
+# If there are no code files to process, exit
+if [ \${#PROCESS_FILES[@]} -eq 0 ]; then
+  log_message "HOOK SCRIPT: No relevant code files modified in this commit. Exiting."
+  exit 0
+fi
+
 PROJECT_ENVRC_FILE="\$REPO_ROOT/.envrc"
 if [ -f "\$PROJECT_ENVRC_FILE" ]; then
   log_message "HOOK SCRIPT: Sourcing environment variables from \$PROJECT_ENVRC_FILE"
@@ -54,10 +86,17 @@ PYTHON_SCRIPT_PATH="\$REPO_ROOT/readme_sync.py"
 log_message "HOOK SCRIPT: Checking for readme_sync.py at \$PYTHON_SCRIPT_PATH..."
 
 if [ -f "\$PYTHON_SCRIPT_PATH" ]; then
-  log_message "HOOK SCRIPT: readme_sync.py found. Executing in BACKGROUND: python \$PYTHON_SCRIPT_PATH --root \$REPO_ROOT --non-interactive --llm-mode remote"
+  # Create a space-separated list of paths to process
+  PATHS_TO_PROCESS=""
+  for file in "\${PROCESS_FILES[@]}"; do
+    PATHS_TO_PROCESS+="\$REPO_ROOT/\$file "
+  done
+  
+  log_message "HOOK SCRIPT: readme_sync.py found. Executing in BACKGROUND for specific files using single-file-mode: \$PATHS_TO_PROCESS"
   log_message "HOOK SCRIPT: --- readme_sync.py output (stdout & stderr) will be appended directly to this log (without line-by-line timestamps from hook) ---"
   
-  nohup python "\$PYTHON_SCRIPT_PATH" --root "\$REPO_ROOT" --non-interactive --llm-mode remote >> "\$LOG_FILE" 2>&1 & disown
+  # Run readme_sync.py with single-file-mode for more efficient processing
+  nohup python "\$PYTHON_SCRIPT_PATH" \$PATHS_TO_PROCESS --non-interactive --llm-mode remote --single-file-mode >> "\$LOG_FILE" 2>&1 & disown
   PYTHON_BACKGROUND_PID=\$!
   log_message "HOOK SCRIPT: readme_sync.py launched in background with PID \$PYTHON_BACKGROUND_PID. It will continue to log here."
 
@@ -78,7 +117,9 @@ echo "Git post-commit hook installer finished."
 echo "Installed hook at: $HOOK_FILE"
 echo "The hook will log its operations to: $LOG_FILE_PATH_IN_HOOK"
 echo "The hook will run readme_sync.py in the background."
-echo "The hook will NOT automatically stage README.md changes."
+echo "The hook will ONLY process code files modified in the current commit."
+echo "The hook will SKIP any README.md files to prevent recursive updates."
+echo "The hook uses the new single-file-mode for efficient targeted updates."
 echo "The hook will attempt to source TOGETHER_API_KEY from: $REPO_ROOT/.envrc (if it exists)"
 echo "Make sure readme_sync.py is present at $REPO_ROOT/readme_sync.py"
   
