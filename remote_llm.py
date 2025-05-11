@@ -5,6 +5,7 @@ import sys
 import time
 import threading
 import openai
+import datetime
 
 # ------------------ config ------------------
 TOGETHER_API_KEY = os.getenv("TOGETHER_API_KEY")
@@ -21,6 +22,16 @@ _REMOTE_CACHE: dict[str, str] = {}
 _REMOTE_CACHE_LOCK = threading.Lock()
 
 # ------------------ helpers ------------------
+
+
+def get_timestamp():
+    """Returns a human-readable timestamp in format: YYYY-MM-DD HH:MM:SS"""
+    return datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+
+
+def log_message(message, file=sys.stderr):
+    """Print a message with a timestamp prefix"""
+    print(f"[{get_timestamp()}] {message}", file=file)
 
 
 def get_openai_client():
@@ -50,9 +61,8 @@ def llm_call_remote(prompt: str, model_name: str | None = None) -> str:
                 client = get_openai_client()
                 prompt_snippet = prompt[:50].replace("\n", " ").replace("'", "\\'")
                 thread_id = threading.get_ident()
-                print(
-                    f"[Thread-{thread_id}] DEBUG_REMOTE_LLM: Attempt {attempt + 1}/{REMOTE_LLM_MAX_RETRIES} for model '{model_to_use}' prompt starting with '{prompt_snippet}...'",
-                    file=sys.stderr,
+                log_message(
+                    f"[Thread-{thread_id}] DEBUG_REMOTE_LLM: Attempt {attempt + 1}/{REMOTE_LLM_MAX_RETRIES} for model '{model_to_use}' prompt starting with '{prompt_snippet}...'"
                 )
 
                 completion = client.chat.completions.create(
@@ -82,23 +92,20 @@ Follow these instructions STRICTLY:
 
             except openai.APIConnectionError as e:
                 response_text = f"Error: Remote LLM API connection error - {e}"
-                print(
-                    f"Warning: Remote LLM API connection error (attempt {attempt + 1}/{REMOTE_LLM_MAX_RETRIES}): {e}",
-                    file=sys.stderr,
+                log_message(
+                    f"Warning: Remote LLM API connection error (attempt {attempt + 1}/{REMOTE_LLM_MAX_RETRIES}): {e}"
                 )
             except openai.RateLimitError as e:
                 response_text = f"Error: Remote LLM API rate limit exceeded - {e}"
-                print(
-                    f"Warning: Remote LLM API rate limit exceeded (attempt {attempt + 1}/{REMOTE_LLM_MAX_RETRIES}): {e}",
-                    file=sys.stderr,
+                log_message(
+                    f"Warning: Remote LLM API rate limit exceeded (attempt {attempt + 1}/{REMOTE_LLM_MAX_RETRIES}): {e}"
                 )
                 # For rate limit errors, backing off is crucial.
                 # Consider a more sophisticated backoff if this becomes common.
             except openai.APIStatusError as e:
                 response_text = f"Error: Remote LLM API status error ({e.status_code}) - {e.response}"
-                print(
-                    f"Warning: Remote LLM API status error (attempt {attempt + 1}/{REMOTE_LLM_MAX_RETRIES}): {e}",
-                    file=sys.stderr,
+                log_message(
+                    f"Warning: Remote LLM API status error (attempt {attempt + 1}/{REMOTE_LLM_MAX_RETRIES}): {e}"
                 )
                 # Don't retry on 4xx client errors other than rate limits (handled above) or timeouts (handled by openai.APITimeoutError)
                 if 400 <= e.status_code < 500 and e.status_code not in [
@@ -108,28 +115,24 @@ Follow these instructions STRICTLY:
                     break
             except openai.APITimeoutError as e:
                 response_text = f"Error: Remote LLM API request timed out - {e}"
-                print(
-                    f"Warning: Remote LLM API request timed out (attempt {attempt + 1}/{REMOTE_LLM_MAX_RETRIES}): {e}",
-                    file=sys.stderr,
+                log_message(
+                    f"Warning: Remote LLM API request timed out (attempt {attempt + 1}/{REMOTE_LLM_MAX_RETRIES}): {e}"
                 )
             except Exception as e:  # Catch any other unexpected errors
                 response_text = f"Error: Unexpected error during Remote LLM call - {e}"
-                print(
-                    f"Warning: Unexpected error in llm_call_remote (attempt {attempt + 1}/{REMOTE_LLM_MAX_RETRIES}): {type(e).__name__} - {e}",
-                    file=sys.stderr,
+                log_message(
+                    f"Warning: Unexpected error in llm_call_remote (attempt {attempt + 1}/{REMOTE_LLM_MAX_RETRIES}): {type(e).__name__} - {e}"
                 )
                 break  # Don't retry unknown errors by default
 
             if attempt < REMOTE_LLM_MAX_RETRIES - 1:
-                print(
-                    f"Waiting {REMOTE_LLM_RETRY_DELAY} seconds before next retry...",
-                    file=sys.stderr,
+                log_message(
+                    f"Waiting {REMOTE_LLM_RETRY_DELAY} seconds before next retry..."
                 )
                 time.sleep(REMOTE_LLM_RETRY_DELAY)
             else:  # Last attempt failed
-                print(
-                    f"Error: All {REMOTE_LLM_MAX_RETRIES} retry attempts failed for Remote LLM call to model '{model_to_use}'.",
-                    file=sys.stderr,
+                log_message(
+                    f"Error: All {REMOTE_LLM_MAX_RETRIES} retry attempts failed for Remote LLM call to model '{model_to_use}'."
                 )
 
         # After the loop (or break from it)
@@ -145,16 +148,12 @@ Follow these instructions STRICTLY:
         final_debug_msg_prefix = f"DEBUG_REMOTE_LLM: Final status for model '{model_to_use}' prompt starting with '{prompt_snippet_for_final_debug}...'"
         if response_text.startswith("Error:"):
             error_snippet = response_text[:150].replace("\n", " ").replace("'", "\\'")
-            print(
-                f"{final_debug_msg_prefix} resulted in error: '{error_snippet}...'",
-                file=sys.stderr,
+            log_message(
+                f"{final_debug_msg_prefix} resulted in error: '{error_snippet}...'"
             )
         else:
             success_snippet = response_text[:100].replace("\n", " ").replace("'", "\\'")
-            print(
-                f"{final_debug_msg_prefix} returned: '{success_snippet}...'",
-                file=sys.stderr,
-            )
+            log_message(f"{final_debug_msg_prefix} returned: '{success_snippet}...'")
 
         return response_text
     finally:
@@ -163,31 +162,32 @@ Follow these instructions STRICTLY:
 
 # Example usage (optional, for testing this module directly)
 if __name__ == "__main__":
-    print("Attempting to call remote LLM (Together AI)...")
+    log_message("Attempting to call remote LLM (Together AI)...")
     if not TOGETHER_API_KEY:
-        print(
-            "Error: TOGETHER_API_KEY environment variable is not set. Cannot run example.",
-            file=sys.stderr,
+        log_message(
+            "Error: TOGETHER_API_KEY environment variable is not set. Cannot run example."
         )
         sys.exit(1)
 
     test_prompt = "Explain the theory of relativity in simple terms."
-    print(f"Test prompt: {test_prompt}")
+    log_message(f"Test prompt: {test_prompt}")
     try:
         summary = llm_call_remote(test_prompt)
-        print(f"\nResponse from {DEFAULT_REMOTE_MODEL}:\n{summary}")
+        log_message(
+            f"\nResponse from {DEFAULT_REMOTE_MODEL}:\n{summary}", file=sys.stdout
+        )
     except ValueError as ve:
-        print(f"Error during example: {ve}", file=sys.stderr)
+        log_message(f"Error during example: {ve}")
     except Exception as e:
-        print(f"An unexpected error occurred during the example: {e}", file=sys.stderr)
+        log_message(f"An unexpected error occurred during the example: {e}")
 
     # Test caching
-    print("\nAttempting the same call again (should be cached):")
+    log_message("\nAttempting the same call again (should be cached):")
     try:
         summary_cached = llm_call_remote(test_prompt)
-        print(f"\nCached response from {DEFAULT_REMOTE_MODEL}:\n{summary_cached}")
-    except Exception as e:
-        print(
-            f"An unexpected error occurred during the cached example: {e}",
-            file=sys.stderr,
+        log_message(
+            f"\nCached response from {DEFAULT_REMOTE_MODEL}:\n{summary_cached}",
+            file=sys.stdout,
         )
+    except Exception as e:
+        log_message(f"An unexpected error occurred during the cached example: {e}")
