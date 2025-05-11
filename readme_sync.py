@@ -11,6 +11,7 @@ import sys
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from threading import Lock
 import fnmatch  # Added import
+import datetime  # Added for timestamps
 
 import tiktoken  # Added import
 
@@ -63,6 +64,18 @@ DEFAULT_EXCLUDE_DIR_ITEMS_STR = (
     # Ruby - 'vendor' is general, others are specific subdirs often under vendor
     "bundle,gems,cache,.bundle"
 )
+
+# ------------------ helpers ------------------
+
+
+def get_timestamp():
+    """Returns a human-readable timestamp in format: YYYY-MM-DD HH:MM:SS"""
+    return datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+
+
+def log_message(message, file=sys.stderr):
+    """Print a message with a timestamp prefix"""
+    print(f"[{get_timestamp()}] {message}", file=file)
 
 
 def _resolve_exclusions(env_var_name: str, default_str_value: str) -> set[str]:
@@ -131,7 +144,7 @@ def is_path_excluded(
     # Check against file patterns/names
     for file_item in exclude_file_items:
         if fnmatch.fnmatch(p.name, file_item):
-            # print(f"DEBUG: Excluding {p} (file item '{file_item}' matches name '{p.name}')", file=sys.stderr)
+            # log_message(f"DEBUG: Excluding {p} (file item '{file_item}' matches name '{p.name}')")
             return True
 
     # Check against directory patterns/names in the parent path components
@@ -140,7 +153,7 @@ def is_path_excluded(
             continue
         for dir_item in exclude_dir_items:
             if fnmatch.fnmatch(part, dir_item):
-                # print(f"DEBUG: Excluding {p} (dir item '{dir_item}' matches part '{part}')", file=sys.stderr)
+                # log_message(f"DEBUG: Excluding {p} (dir item '{dir_item}' matches part '{part}')")
                 return True
     return False
 
@@ -465,9 +478,8 @@ def summarise_file(path: Path, llm_mode_choice: str) -> str:
     chunks = extract_code_units(path, ext, llm_mode_choice)  # Pass llm_mode_choice
 
     if not chunks:
-        print(
-            f"Warning: No processable chunks found for {path.name}. Returning empty summary.",
-            file=sys.stderr,
+        log_message(
+            f"Warning: No processable chunks found for {path.name}. Returning empty summary."
         )
         return ""  # Or a standard message like "Could not process this file."
 
@@ -504,9 +516,8 @@ def summarise_file(path: Path, llm_mode_choice: str) -> str:
                         "This Python file is empty or contains only comments. "
                         "It does not define any active code."
                     )
-                print(
-                    f"DEBUG_SUMMARISE_FILE: Using standard blurb for {path.name} (kind: {kind})",
-                    file=sys.stderr,
+                log_message(
+                    f"DEBUG_SUMMARISE_FILE: Using standard blurb for {path.name} (kind: {kind})"
                 )
             else:  # Handles python_syntax_error_file, module, function, class, file (non-empty cases)
                 prompt_text = ""
@@ -847,9 +858,8 @@ def process_paths(
         try:
             _TOKEN_ENCODING = tiktoken.get_encoding("cl100k_base")
         except Exception as e:
-            print(
-                f"Warning: Could not initialize tiktoken encoding. Token counting will be skipped. Error: {e}",
-                file=sys.stderr,
+            log_message(
+                f"Warning: Could not initialize tiktoken encoding. Token counting will be skipped. Error: {e}"
             )
             _TOKEN_ENCODING = None
 
@@ -857,11 +867,11 @@ def process_paths(
     valid_paths_for_summarization: list[Path] = []
 
     # First, filter paths, count tokens for eligible files, and identify directories for cleanup/summarization
-    print(f"Scanning {len(list(paths))} initial paths provided.", file=sys.stderr)
+    log_message(f"Scanning {len(list(paths))} initial paths provided.")
     for p in paths:  # This paths argument is the initial list of files/dirs from CLI
         if p.is_file() and p.suffix[1:] in INCLUDE_EXTS:
             if is_path_excluded(p, EXCLUDE_DIR_ITEMS, EXCLUDE_FILE_ITEMS):
-                # print(f"DEBUG: Skipping excluded path (in process_paths initial loop): {p}", file=sys.stderr)
+                # log_message(f"DEBUG: Skipping excluded path (in process_paths initial loop): {p}")
                 continue
 
             # If not excluded, count tokens
@@ -873,12 +883,9 @@ def process_paths(
                     )
                     with _TOKEN_COUNT_LOCK:
                         _TOTAL_TOKEN_COUNT += token_count
-                    print(f"Tokens for {p}: {token_count}", file=sys.stderr)
+                    log_message(f"Tokens for {p}: {token_count}")
                 except Exception as e:
-                    print(
-                        f"Warning: Could not count tokens for {p}. Error: {e}",
-                        file=sys.stderr,
-                    )
+                    log_message(f"Warning: Could not count tokens for {p}. Error: {e}")
 
             valid_paths_for_summarization.append(p)
             if p.parent.is_dir():
@@ -886,11 +893,11 @@ def process_paths(
         elif (
             p.is_dir()
         ):  # If a directory is given, recursively find eligible files within it
-            print(f"Scanning directory: {p}", file=sys.stderr)
+            log_message(f"Scanning directory: {p}")
             for sub_p in p.rglob("*"):
                 if sub_p.is_file() and sub_p.suffix[1:] in INCLUDE_EXTS:
                     if is_path_excluded(sub_p, EXCLUDE_DIR_ITEMS, EXCLUDE_FILE_ITEMS):
-                        # print(f"DEBUG: Skipping excluded path (in process_paths rglob): {sub_p}", file=sys.stderr)
+                        # log_message(f"DEBUG: Skipping excluded path (in process_paths rglob): {sub_p}")
                         continue
 
                     if _TOKEN_ENCODING:
@@ -901,11 +908,10 @@ def process_paths(
                             )
                             with _TOKEN_COUNT_LOCK:
                                 _TOTAL_TOKEN_COUNT += token_count
-                            print(f"Tokens for {sub_p}: {token_count}", file=sys.stderr)
+                            log_message(f"Tokens for {sub_p}: {token_count}")
                         except Exception as e:
-                            print(
-                                f"Warning: Could not count tokens for {sub_p}. Error: {e}",
-                                file=sys.stderr,
+                            log_message(
+                                f"Warning: Could not count tokens for {sub_p}. Error: {e}"
                             )
 
                     valid_paths_for_summarization.append(sub_p)
@@ -914,17 +920,15 @@ def process_paths(
 
     # Deduplicate valid_paths_for_summarization, as rglob might find files multiple times if symlinks or overlapping paths are given
     valid_paths_for_summarization = sorted(list(set(valid_paths_for_summarization)))
-    print(
-        f"Found {len(valid_paths_for_summarization)} unique, non-excluded files for potential processing.",
-        file=sys.stderr,
+    log_message(
+        f"Found {len(valid_paths_for_summarization)} unique, non-excluded files for potential processing."
     )
 
     # --- Sequential Cleanup Phase for READMEs that might have stale entries ---
     # This cleanup should happen based on directories that *could* have READMEs
     # It's done before summarization to ensure we don't try to update a README that has stale entries from deleted files.
-    print(
-        f"Starting pre-summarization cleanup for READMEs in {len(readme_dirs_to_check)} directories.",
-        file=sys.stderr,
+    log_message(
+        f"Starting pre-summarization cleanup for READMEs in {len(readme_dirs_to_check)} directories."
     )
     for readme_dir in readme_dirs_to_check:
         readme_path = readme_dir / "README.md"
@@ -951,9 +955,8 @@ def process_paths(
                 ]
 
                 if fnames_to_remove_summary_for:
-                    print(
-                        f"Pre-cleanup for {readme_path}: Removing summaries for {fnames_to_remove_summary_for}",
-                        file=sys.stderr,
+                    log_message(
+                        f"Pre-cleanup for {readme_path}: Removing summaries for {fnames_to_remove_summary_for}"
                     )
                     modified_readme_content = current_content
                     for fname_to_remove in fnames_to_remove_summary_for:
@@ -968,71 +971,54 @@ def process_paths(
                                 modified_readme_content, encoding="utf-8"
                             )
             except Exception as e:
-                print(
-                    f"Error during pre-summarization cleanup of {readme_path}: {e}",
-                    file=sys.stderr,
+                log_message(
+                    f"Error during pre-summarization cleanup of {readme_path}: {e}"
                 )
 
     # --- Parallel Summarization and Injection Phase ---
     if not valid_paths_for_summarization:
-        print("No valid files found for summarization.", file=sys.stderr)
+        log_message("No valid files found for summarization.")
         if (
             _TOKEN_ENCODING
         ):  # Still print token count if any were counted and we are exiting early
-            print(
-                f"\nEstimated total tokens for all scanned files: {_TOTAL_TOKEN_COUNT}",
-                file=sys.stderr,  # Print to stderr as it's an informational message before exit
+            log_message(
+                f"\nEstimated total tokens for all scanned files: {_TOTAL_TOKEN_COUNT}"
             )
         return
 
     # First, list the files
-    print("\nThe following files are queued for LLM summarization:", file=sys.stderr)
+    log_message("\nThe following files are queued for LLM summarization:")
     for i, f_path in enumerate(valid_paths_for_summarization):
-        print(
-            f"  [{i+1}/{len(valid_paths_for_summarization)}] {f_path}", file=sys.stderr
-        )
+        log_message(f"  [{i+1}/{len(valid_paths_for_summarization)}] {f_path}")
 
     # Then, print cumulative total token count
     if _TOKEN_ENCODING:
-        print(
-            f"\nTotal estimated tokens for these {len(valid_paths_for_summarization)} files: {_TOTAL_TOKEN_COUNT}",
-            file=sys.stderr,
+        log_message(
+            f"\nTotal estimated tokens for these {len(valid_paths_for_summarization)} files: {_TOTAL_TOKEN_COUNT}"
         )
 
     # Finally, ask for Y/N Confirmation Prompt
     if non_interactive:
         proceed = "y"
-        print(
-            "Non-interactive mode: Defaulting to proceed with summarization.",
-            file=sys.stderr,
-        )
+        log_message("Non-interactive mode: Defaulting to proceed with summarization.")
     else:
         proceed = input("\nProceed with LLM summarization? (Y/N): ").strip().lower()
 
     if proceed != "y":
-        print("LLM summarization aborted by user.", file=sys.stderr)
+        log_message("LLM summarization aborted by user.")
         return  # Exit process_paths function
 
     # Determine LLM mode choice
     if non_interactive:
         if llm_mode == "local":
             llm_mode_choice = "1"
-            print(
-                "Non-interactive mode: Using LLM mode 'local' as specified.",
-                file=sys.stderr,
-            )
+            log_message("Non-interactive mode: Using LLM mode 'local' as specified.")
         elif llm_mode == "remote":
             llm_mode_choice = "2"
-            print(
-                "Non-interactive mode: Using LLM mode 'remote' as specified.",
-                file=sys.stderr,
-            )
+            log_message("Non-interactive mode: Using LLM mode 'remote' as specified.")
         else:  # llm_mode is None or an unexpected value, default to remote for non-interactive
             llm_mode_choice = "2"
-            print(
-                "Non-interactive mode: Defaulting to LLM mode 'remote'.",
-                file=sys.stderr,
-            )
+            log_message("Non-interactive mode: Defaulting to LLM mode 'remote'.")
     else:
         llm_choice_prompt = (
             "\nChoose LLM processing mode:\n"
@@ -1044,21 +1030,19 @@ def process_paths(
 
     # Validate and set up based on llm_mode_choice (common for both interactive and non-interactive)
     if llm_mode_choice == "1":
-        print("Local LLM mode selected.", file=sys.stderr)
+        log_message("Local LLM mode selected.")
         DEFAULT_MAX_WORKERS_ACTUAL = 2
         MAX_WORKERS = int(
             os.getenv("LOCAL_MAX_WORKERS", str(DEFAULT_MAX_WORKERS_ACTUAL))
         )
     elif llm_mode_choice == "2":
-        print("Remote LLM mode (Together AI) selected.", file=sys.stderr)
+        log_message("Remote LLM mode (Together AI) selected.")
         if not remote_llm.TOGETHER_API_KEY:
-            print(
-                "ERROR: Remote LLM mode selected, but TOGETHER_API_KEY environment variable is not set.",
-                file=sys.stderr,
+            log_message(
+                "ERROR: Remote LLM mode selected, but TOGETHER_API_KEY environment variable is not set."
             )
-            print(
-                "Please set TOGETHER_API_KEY or choose local mode (if interactive) or ensure key is in environment (if non-interactive).",
-                file=sys.stderr,
+            log_message(
+                "Please set TOGETHER_API_KEY or choose local mode (if interactive) or ensure key is in environment (if non-interactive)."
             )
             return  # Abort if API key is missing for remote mode
         DEFAULT_MAX_WORKERS_ACTUAL = 4
@@ -1066,53 +1050,47 @@ def process_paths(
             os.getenv("REMOTE_MAX_WORKERS", str(DEFAULT_MAX_WORKERS_ACTUAL))
         )
     else:
-        print("Invalid choice. Defaulting to Local LLM mode.", file=sys.stderr)
+        log_message("Invalid choice. Defaulting to Local LLM mode.")
         llm_mode_choice = "1"  # Default to local if input is invalid
         DEFAULT_MAX_WORKERS_ACTUAL = 2  # Default to local's default
         MAX_WORKERS = int(
             os.getenv("LOCAL_MAX_WORKERS", str(DEFAULT_MAX_WORKERS_ACTUAL))
         )
 
-    print(
-        f"Starting summarization for {len(valid_paths_for_summarization)} files using up to {MAX_WORKERS} workers (mode: {llm_mode_choice})...",
-        file=sys.stderr,
+    log_message(
+        f"Starting summarization for {len(valid_paths_for_summarization)} files using up to {MAX_WORKERS} workers (mode: {llm_mode_choice})..."
     )
 
     with ThreadPoolExecutor(max_workers=MAX_WORKERS) as executor:
         if llm_mode_choice == "1" and MAX_WORKERS > 0:
-            print("Attempting to preload local model...", file=sys.stderr)
+            log_message("Attempting to preload local model...")
             preload_future = executor.submit(local_llm.preload_model)
             try:
                 if preload_future.result(
                     timeout=local_llm.LLM_FIRST_ATTEMPT_TIMEOUT + 10
                 ):
-                    print(
-                        "Local model preloaded successfully or was already loaded.",
-                        file=sys.stderr,
+                    log_message(
+                        "Local model preloaded successfully or was already loaded."
                     )
                 else:
-                    print(
-                        "Local model preloading failed or indicated model was not ready.",
-                        file=sys.stderr,
+                    log_message(
+                        "Local model preloading failed or indicated model was not ready."
                     )
             except Exception as e:
-                print(f"Error during local model preloading: {e}", file=sys.stderr)
+                log_message(f"Error during local model preloading: {e}")
         elif llm_mode_choice == "2" and MAX_WORKERS > 0:
-            print(
-                "Remote LLM mode selected. Preloading is not applicable for remote APIs.",
-                file=sys.stderr,
+            log_message(
+                "Remote LLM mode selected. Preloading is not applicable for remote APIs."
             )
 
         if MAX_WORKERS <= 0:
-            print(
-                f"MAX_WORKERS is {MAX_WORKERS}, running summarizations sequentially.",
-                file=sys.stderr,
+            log_message(
+                f"MAX_WORKERS is {MAX_WORKERS}, running summarizations sequentially."
             )
             for path_to_process in valid_paths_for_summarization:
                 try:
-                    print(
-                        f"Processing (sequentially, mode: {llm_mode_choice}): {path_to_process}",
-                        file=sys.stderr,
+                    log_message(
+                        f"Processing (sequentially, mode: {llm_mode_choice}): {path_to_process}"
                     )
                     md_summary = summarise_file(path_to_process, llm_mode_choice)
                     if md_summary and not md_summary.startswith("Error:"):
@@ -1120,40 +1098,33 @@ def process_paths(
                         readme_lock = _get_readme_lock(readme_file_path)
                         with readme_lock:
                             _inject(readme_file_path, path_to_process.name, md_summary)
-                        print(
-                            f"Updated (sequentially): {readme_file_path} for {path_to_process.name}",
-                            file=sys.stderr,
+                        log_message(
+                            f"Updated (sequentially): {readme_file_path} for {path_to_process.name}"
                         )
                     elif md_summary:  # Error occurred
-                        print(
-                            f"Skipping injection for {path_to_process.name} due to summarization error: {md_summary[:100]}...",
-                            file=sys.stderr,
+                        log_message(
+                            f"Skipping injection for {path_to_process.name} due to summarization error: {md_summary[:100]}..."
                         )
                     else:  # No summary
-                        print(
-                            f"Warning: No summary generated for {path_to_process.name}",
-                            file=sys.stderr,
+                        log_message(
+                            f"Warning: No summary generated for {path_to_process.name}"
                         )
                 except Exception as exc:
-                    print(
-                        f"Error processing {path_to_process} sequentially: {exc}",
-                        file=sys.stderr,
+                    log_message(
+                        f"Error processing {path_to_process} sequentially: {exc}"
                     )
             if _TOKEN_ENCODING:
-                print(
-                    f"\nEstimated total tokens for all scanned files: {_TOTAL_TOKEN_COUNT}",
-                    file=sys.stdout,
+                log_message(
+                    f"\nEstimated total tokens for all scanned files: {_TOTAL_TOKEN_COUNT}"
                 )
-                print(
-                    f"Estimated total tokens for all scanned files (completed run): {_TOTAL_TOKEN_COUNT}",
-                    file=sys.stderr,
+                log_message(
+                    f"Estimated total tokens for all scanned files (completed run): {_TOTAL_TOKEN_COUNT}"
                 )
             return
 
         # Submit summarization tasks for parallel execution based on mode
-        print(
-            f"Submitting tasks for LLM processing in mode: {llm_mode_choice}...",
-            file=sys.stderr,
+        log_message(
+            f"Submitting tasks for LLM processing in mode: {llm_mode_choice}..."
         )
         future_to_path = {
             executor.submit(summarise_file, p, llm_mode_choice): p
@@ -1171,40 +1142,31 @@ def process_paths(
                     with readme_lock:
                         _inject(readme_file_path, path_processed.name, md_summary)
                 elif md_summary:  # Error occurred during summarization
-                    print(
-                        f"Skipping injection for {path_processed.name} due to summarization error: {md_summary[:100]}...",
-                        file=sys.stderr,
+                    log_message(
+                        f"Skipping injection for {path_processed.name} due to summarization error: {md_summary[:100]}..."
                     )
                 else:  # No summary generated
-                    print(
-                        f"Warning: No summary generated (empty) for {path_processed.name}",
-                        file=sys.stderr,
+                    log_message(
+                        f"Warning: No summary generated (empty) for {path_processed.name}"
                     )
             except Exception as exc:
-                print(
-                    f"File {path_processed.name} generated an exception during its task processing: {exc}",
-                    file=sys.stderr,
+                log_message(
+                    f"File {path_processed.name} generated an exception during its task processing: {exc}"
                 )
             processed_count += 1
-            print(
-                f"Completed processing ({processed_count}/{len(valid_paths_for_summarization)}): {path_processed.name}",
-                file=sys.stderr,
+            log_message(
+                f"Completed processing ({processed_count}/{len(valid_paths_for_summarization)}): {path_processed.name}"
             )
 
-    print(
-        f"Finished processing all {len(valid_paths_for_summarization)} files.",
-        file=sys.stderr,
-    )
+    log_message(f"Finished processing all {len(valid_paths_for_summarization)} files.")
 
     # After all files are processed (summarized and injected), print the total token count
     if _TOKEN_ENCODING:
-        print(
-            f"\nEstimated total tokens for all scanned files: {_TOTAL_TOKEN_COUNT}",
-            file=sys.stdout,
+        log_message(
+            f"\nEstimated total tokens for all scanned files: {_TOTAL_TOKEN_COUNT}"
         )
-        print(
-            f"Estimated total tokens for all scanned files (completed run): {_TOTAL_TOKEN_COUNT}",  # This is the final stderr print
-            file=sys.stderr,
+        log_message(
+            f"Estimated total tokens for all scanned files (completed run): {_TOTAL_TOKEN_COUNT}"
         )
 
     # Note: The extensive cleanup logic that was previously at the very end seems to be covered
@@ -1239,14 +1201,13 @@ def main(argv=None):
     root_path = Path(ns.root).resolve()
 
     if not root_path.is_dir():
-        print(
-            f"Error: Root path {root_path} is not a directory or does not exist.",
-            file=sys.stderr,
+        log_message(
+            f"Error: Root path {root_path} is not a directory or does not exist."
         )
         return
 
-    print(f"DEBUG: Excluding directory items: {EXCLUDE_DIR_ITEMS}", file=sys.stderr)
-    print(f"DEBUG: Excluding file items: {EXCLUDE_FILE_ITEMS}", file=sys.stderr)
+    log_message(f"DEBUG: Excluding directory items: {EXCLUDE_DIR_ITEMS}")
+    log_message(f"DEBUG: Excluding file items: {EXCLUDE_FILE_ITEMS}")
 
     files_to_process = []
     if ns.paths:  # User specified specific paths
@@ -1257,20 +1218,18 @@ def main(argv=None):
                 file_ext = p.suffix.lstrip(".")
                 if file_ext in INCLUDE_EXTS:
                     if is_path_excluded(p, EXCLUDE_DIR_ITEMS, EXCLUDE_FILE_ITEMS):
-                        print(
-                            f"DEBUG: Skipping excluded specified file path: {p}",
-                            file=sys.stderr,
+                        log_message(
+                            f"DEBUG: Skipping excluded specified file path: {p}"
                         )
                         continue
                     files_to_process.append(p)
                 else:
-                    print(
-                        f"DEBUG: Skipping (due to extension not in INCLUDE_EXTS): {p}",
-                        file=sys.stderr,
+                    log_message(
+                        f"DEBUG: Skipping (due to extension not in INCLUDE_EXTS): {p}"
                     )
 
             elif p.is_dir():
-                print(f"Scanning specified directory: {p}", file=sys.stderr)
+                log_message(f"Scanning specified directory: {p}")
                 is_dir_itself_excluded = False
                 for (
                     dir_item
@@ -1281,9 +1240,8 @@ def main(argv=None):
                         is_dir_itself_excluded = True
                         break
                 if is_dir_itself_excluded:
-                    print(
-                        f"DEBUG: Skipping directory scan (directory name '{p.name}' matches exclude pattern): {p}",
-                        file=sys.stderr,
+                    log_message(
+                        f"DEBUG: Skipping directory scan (directory name '{p.name}' matches exclude pattern): {p}"
                     )
                     continue
 
@@ -1294,49 +1252,43 @@ def main(argv=None):
                             if is_path_excluded(
                                 sub_p, EXCLUDE_DIR_ITEMS, EXCLUDE_FILE_ITEMS
                             ):
-                                # print(f"DEBUG: Skipping excluded path in specified directory scan: {sub_p}", file=sys.stderr)
+                                # log_message(f"DEBUG: Skipping excluded path in specified directory scan: {sub_p}")
                                 continue
                             files_to_process.append(sub_p)
                         else:
-                            print(
-                                f"DEBUG: Skipping (from dir scan, extension not in INCLUDE_EXTS): {sub_p}",
-                                file=sys.stderr,
+                            log_message(
+                                f"DEBUG: Skipping (from dir scan, extension not in INCLUDE_EXTS): {sub_p}"
                             )
             else:
-                print(
-                    f"Warning: Specified path {p_str} is not a valid file or directory. Skipping.",
-                    file=sys.stderr,
+                log_message(
+                    f"Warning: Specified path {p_str} is not a valid file or directory. Skipping."
                 )
 
         files_to_process = sorted(list(set(files_to_process)))  # Remove duplicates
     else:  # No specific paths, scan the root directory
-        print(f"Scanning root directory for files: {root_path}", file=sys.stderr)
+        log_message(f"Scanning root directory for files: {root_path}")
         temp_files = []
         for p in root_path.rglob("*"):
             if p.is_file():
                 file_ext = p.suffix.lstrip(".")
                 if file_ext in INCLUDE_EXTS:
                     if is_path_excluded(p, EXCLUDE_DIR_ITEMS, EXCLUDE_FILE_ITEMS):
-                        # print(f"DEBUG: Skipping excluded path in root scan: {p}", file=sys.stderr)
+                        # log_message(f"DEBUG: Skipping excluded path in root scan: {p}")
                         continue
                     temp_files.append(p)
                 else:
-                    print(
-                        f"DEBUG: Skipping (extension not in INCLUDE_EXTS): {p}",
-                        file=sys.stderr,
-                    )
+                    log_message(f"DEBUG: Skipping (extension not in INCLUDE_EXTS): {p}")
         files_to_process = sorted(temp_files)
 
     if not files_to_process:
-        print(
-            f"No files found to process in {root_path} (or specified paths based on INCLUDE_EXTS: {INCLUDE_EXTS}).",
-            file=sys.stderr,
+        log_message(
+            f"No files found to process in {root_path} (or specified paths based on INCLUDE_EXTS: {INCLUDE_EXTS})."
         )
         return
 
-    print(f"Found {len(files_to_process)} files to process in total.", file=sys.stderr)
+    log_message(f"Found {len(files_to_process)} files to process in total.")
     for f_idx, f_path in enumerate(files_to_process):
-        print(f"  [{f_idx+1}/{len(files_to_process)}] {f_path}", file=sys.stderr)
+        log_message(f"  [{f_idx+1}/{len(files_to_process)}] {f_path}")
 
     process_paths(files_to_process, root_path, ns.non_interactive, ns.llm_mode)
 
