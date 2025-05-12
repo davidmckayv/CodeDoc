@@ -235,20 +235,23 @@ KEY USER-FACING COMPONENTS AND USAGE:
 <!-- BEGIN summary: prompts.py -->
 ## prompts.py
 
+**For Non-Technical Readers:**
+This file provides a set of functions designed to generate summaries and documentation for code files in a user-friendly format. It's like having a tool that helps explain complex code in simple terms, making it easier for developers and users to understand the code's purpose and functionality. The summaries generated are useful for creating README.md files, documenting code, and facilitating the integration of software components.
+
 PRIMARY TECHNICAL RESPONSIBILITY FROM A USER PERSPECTIVE:
-This file provides a suite of functions designed to generate Markdown summaries and prompts for documenting various aspects of source code files, particularly focusing on user-facing components and integration. The primary technical responsibility is to facilitate the creation of comprehensive README.md files that highlight the main purpose, key functionalities, and usage patterns of code units such as functions, classes, and modules.
+The primary purpose of this file is to provide a collection of functions that assist in generating user-centric documentation and summaries for code files. These functions take into account the code's structure, functionality, and user-facing aspects to create comprehensive overviews.
 
 KEY USER-FACING COMPONENTS AND USAGE:
-- **`get_llm_extract_generic_units_prompt`**: Generates a prompt for a Large Language Model to extract top-level code units from a given source code snippet. Users provide the programming language, file path, file extension, and source code snippet to receive a formatted prompt.
-- **`get_python_syntax_error_prompt`**: Creates a Markdown-formatted prompt for assessing Python code snippets with syntax errors. Users input the file name, language extension, and code snippet to generate a structured assessment template.
-- **`get_python_module_prompt`**: Generates a Markdown template for documenting a Python module, focusing on its purpose, key features, and typical usage. Users provide the module name, language extension, and source code snippet.
-- **`get_python_class_prompt`**: Produces a Markdown template for documenting a Python class, emphasizing its public API and user interaction. Users input the class name, language extension, and source code snippet.
-- **`get_python_function_prompt`**: Creates a Markdown summary for a Python function or method, detailing its purpose, parameters, return value, and primary use cases. Users provide the function/method name, kind (function/method), language extension, and source code snippet.
-- **`get_generic_unit_prompt`**: Generates a Markdown template for documenting a generic code unit, focusing on its public API and user interaction. Users input the language extension, kind of code unit, unit name, and source code snippet.
-- **`get_file_chunk_prompt`**: Creates a prompt for summarizing a given code segment from a file, focusing on its primary purpose and key operations. Users provide the file path, code chunk identifier, language extension, and source code snippet.
-- **`get_default_file_summary_prompt`**: Generates a default prompt for summarizing a source code file, focusing on user-facing aspects. Users input the file name, language extension, and source code snippet.
-- **`get_rollup_prompt`**: Consolidates input text blurbs into a structured Markdown summary suitable for README.md files, focusing on the file's primary technical responsibility and key user-facing components. Users provide a list of text blurbs describing different parts of a file.
-- **`get_direct_summary_retry_prompt`**: Generates a prompt for retrying the creation of a comprehensive Markdown summary of a source code file, focusing on user-facing aspects. Users input the file path, file extension, and a snippet of the file content.
+- **`get_llm_extract_generic_units_prompt`**: Generates a prompt for a Large Language Model to extract top-level code units from a given source code snippet. Users provide the language name, file path, file extension, and source code snippet, and the function returns a formatted prompt.
+- **`get_python_syntax_error_prompt`**: Creates a Markdown assessment for a Python code snippet with syntax errors, providing a best-effort analysis of the code's structure and purpose. Users can call this function with the file name, language extension, and code snippet to receive a formatted Markdown report.
+- **`get_python_module_prompt`**: Generates a Markdown summary for a given Python module code snippet, focusing on its functionality and usage. Users provide the module kind, name, language extension, and source code snippet.
+- **`get_python_class_prompt`**: Creates a Markdown summary template for a given Python class, focusing on its public API and user interaction. Users provide the class kind, name, language extension, and source code snippet.
+- **`get_python_function_prompt`**: Generates a Markdown summary template for a given Python function or method, including sections for non-technical explanations, purpose, parameters, return values, and usage examples. Users provide the function kind, name, language extension, and source code snippet.
+- **`get_generic_unit_prompt`**: Creates a Markdown template for documenting a code unit (like a function, class, or script), providing a structured format that includes explanations of the code's purpose, interface, and typical use cases. Users provide the language extension, code unit kind, name, and source code snippet.
+- **`get_file_chunk_prompt`**: Generates a prompt for summarizing a specific chunk of code from a file, focusing on its purpose and key operations. Users provide the file path, code chunk name, language extension, and source code snippet.
+- **`get_default_file_summary_prompt`**: Creates a structured Markdown overview for a README.md file, focusing on a file's purpose, key functionalities, typical usage, and external dependencies. Users provide the file name, language extension, and source code snippet.
+- **`get_rollup_prompt`**: Consolidates a list of text descriptions about different parts of a software file into a comprehensive Markdown summary, focusing on user-facing aspects. Users provide a list of text blurbs.
+- **`get_direct_summary_retry_prompt`**: Generates a Markdown prompt for creating a comprehensive summary for a given code file, emphasizing user-facing components and usage. Users provide the file path, file extension, and a snippet of the file's content.
 <!-- END summary: prompts.py -->
 
 <!-- BEGIN summary: readme_sync.py -->
