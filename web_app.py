@@ -13,7 +13,7 @@ import time
 import json
 from datetime import datetime
 
-from flask import Flask, request, jsonify, render_template_string, Response
+from flask import Flask, request, jsonify, render_template, Response
 
 # Import the whole module to access its functions and submodules/variables
 import readme_sync
@@ -93,344 +93,6 @@ def ensure_readme_sync_tokenizer_initialized():
             # readme_sync functions should handle _TOKEN_ENCODING being None if it fails
 
 
-INDEX_HTML = """
-<!doctype html>
-<html lang="en">
-<head>
-  <meta charset="utf-8">
-  <title>readme-sync</title>
-  <style>
-    body { font-family: sans-serif; margin: 20px; background-color: #f4f4f4; color: #333; }
-    h1, h2 { color: #333; }
-    ul { list-style-type: none; padding: 0; }
-    li { background-color: #fff; border: 1px solid #ddd; margin-bottom: 10px; padding: 10px; border-radius: 4px; display: flex; justify-content: space-between; align-items: center; }
-    li > div { display: flex; flex-direction: column; align-items: flex-end; margin-left: 10px; }
-    li > div > form { margin-bottom: 5px; }
-    .file-status { font-size: 0.9em; color: #555; text-align: right; }
-    form { display: inline-block; }
-    button { background-color: #007bff; color: white; border: none; padding: 8px 12px; text-align: center; text-decoration: none; display: inline-block; font-size: 14px; border-radius: 4px; cursor: pointer; }
-    button:hover { background-color: #0056b3; }
-    .container { background-color: #fff; padding: 20px; border-radius: 5px; box-shadow: 0 0 10px rgba(0,0,0,0.1); }
-    select, input[type="hidden"] { margin-bottom:10px }
-    hr { margin: 20px 0; }
-    .status-message { padding: 10px; margin-top: 15px; border-radius: 4px; }
-    .success { background-color: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
-    .error { background-color: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
-    .info { background-color: #e2f3fd; color: #0c5460; border: 1px solid #bee5eb; }
-    #live-log-container {
-      background-color: #2b2b2b;
-      color: #f0f0f0;
-      font-family: monospace;
-      padding: 10px;
-      border-radius: 4px;
-      height: 300px;
-      overflow-y: auto;
-      margin-top: 20px;
-      white-space: pre-wrap;
-      font-size: 12px;
-    }
-    .log-line {
-      margin: 0;
-      padding: 1px 0;
-    }
-    .status-indicator {
-      display: inline-block;
-      width: 10px;
-      height: 10px;
-      border-radius: 50%;
-      margin-right: 5px;
-    }
-    .status-active {
-      background-color: #28a745;
-      animation: pulse 1.5s infinite;
-    }
-    .status-inactive {
-      background-color: #dc3545;
-    }
-    @keyframes pulse {
-      0% { opacity: 1; }
-      50% { opacity: 0.5; }
-      100% { opacity: 1; }
-    }
-  </style>
-</head>
-<body>
-  <div class="container">
-    <h1>readme-sync UI</h1>
-
-    <div>
-      <h2>LLM Mode Selection</h2>
-      <p>Note: Remote LLM requires TOGETHER_API_KEY to be set in the environment.</p>
-      <select id="llm_mode_select" name="llm_mode">
-        <option value="1">Local LLM</option>
-        <option value="2">Remote LLM (Together AI)</option>
-      </select>
-    </div>
-    <hr>
-
-    <h2>Process Single File</h2>
-    <ul id="file-list">
-    {% for fp in files %}
-      <li>
-        <span>{{ fp }}</span>
-        <div>
-          <form action="/generate" method="post" style="display:inline" class="generate-form">
-            <input type="hidden" name="path" value="{{ fp }}">
-            <input type="hidden" name="llm_mode" class="llm_mode_input">
-            <button type="submit">Generate Summary</button>
-          </form>
-          <div class="file-status" id="status-{{ fp | replace('.', '-') | replace('/', '-') }}"></div>
-        </div>
-      </li>
-    {% else %}
-      <li>No processable files found.</li>
-    {% endfor %}
-    </ul>
-    <hr>
-
-    <h2>Process Entire Project</h2>
-    <form action="/process-project" method="post" class="process-project-form">
-        <input type="hidden" name="llm_mode" class="llm_mode_input">
-        <button type="submit">Summarize All Project Files</button>
-    </form>
-    <div id="project-status"></div>
-    
-    <div>
-      <h3>
-        <span class="status-indicator" id="status-indicator"></span>
-        Live Processing Log
-      </h3>
-      <div id="live-log-container"></div>
-    </div>
-  </div>
-
-  <script>
-    function escapeHtml(unsafe) {
-      return unsafe
-           .replace(/&/g, "&amp;")
-           .replace(/</g, "&lt;")
-           .replace(/>/g, "&gt;")
-           .replace(/"/g, "&quot;")
-           .replace(/'/g, "&#039;");
-    }
-
-    function displayLogs(logsArray, targetElement) {
-      if (logsArray && Array.isArray(logsArray) && logsArray.length > 0) {
-        const logsHtml = logsArray.map(line => escapeHtml(line)).join('\\n');
-        const logSection = '<h4>Log Messages:</h4>' + 
-          '<pre style="max-height: 200px; overflow-y: auto; background-color: #e9e9e9; padding: 5px; ' +
-          'border: 1px solid #ccc; text-align: left; white-space: pre-wrap; font-size: 12px;">' + 
-          logsHtml + '</pre>';
-        
-        if (targetElement.innerHTML.includes('successfully')) {
-          targetElement.innerHTML += logSection;
-        } else {
-          targetElement.innerHTML = targetElement.innerHTML + logSection;
-        }
-        
-        console.log("Displayed logs:", logsArray.length, "lines");
-        return true;
-      } else {
-        console.warn("No logs to display or invalid logs format", logsArray);
-        return false;
-      }
-    }
-
-    function attachLlmMode(event) {
-      const selectedLlmMode = document.getElementById('llm_mode_select').value;
-      const form = event.target;
-      const llmModeInputs = form.querySelectorAll('.llm_mode_input');
-      llmModeInputs.forEach(input => {
-        input.value = selectedLlmMode;
-      });
-    }
-
-    let eventSource;
-    let reconnectAttempts = 0;
-    const maxReconnectAttempts = 5;
-    const reconnectDelay = 2000; // 2 seconds
-
-    function setupLogStream() {
-      if (eventSource) {
-        eventSource.close();
-      }
-
-      eventSource = new EventSource('/log-stream');
-      const logContainer = document.getElementById('live-log-container');
-      const statusIndicator = document.getElementById('status-indicator');
-      
-      eventSource.onopen = function() {
-        console.log('Log stream connected');
-        reconnectAttempts = 0;
-        logContainer.innerHTML += '<div class="log-line">[System] Connected to log stream</div>';
-        logContainer.scrollTop = logContainer.scrollHeight;
-      };
-      
-      eventSource.onmessage = function(event) {
-        try {
-          const data = JSON.parse(event.data);
-          
-          if (data.logs && Array.isArray(data.logs)) {
-            data.logs.forEach(logLine => {
-              logContainer.innerHTML += `<div class="log-line">${escapeHtml(logLine)}</div>`;
-            });
-            logContainer.scrollTop = logContainer.scrollHeight;
-          }
-          
-          if (data.status) {
-            if (data.status.active) {
-              statusIndicator.className = "status-indicator status-active";
-            } else {
-              statusIndicator.className = "status-indicator status-inactive";
-            }
-          }
-          
-        } catch (e) {
-          console.error('Error parsing log stream data:', e);
-          logContainer.innerHTML += `<div class="log-line error">[System] Error processing log: ${e.message}</div>`;
-        }
-      };
-      
-      eventSource.onerror = function(error) {
-        console.error('Log stream error:', error);
-        statusIndicator.className = "status-indicator status-inactive";
-        logContainer.innerHTML += '<div class="log-line error">[System] Connection error. Attempting to reconnect...</div>';
-        
-        eventSource.close();
-        
-        if (reconnectAttempts < maxReconnectAttempts) {
-          reconnectAttempts++;
-          setTimeout(setupLogStream, reconnectDelay * reconnectAttempts);
-          logContainer.innerHTML += `<div class="log-line">[System] Reconnect attempt ${reconnectAttempts}/${maxReconnectAttempts}...</div>`;
-        } else {
-          logContainer.innerHTML += '<div class="log-line error">[System] Failed to reconnect after multiple attempts. Please reload the page.</div>';
-        }
-      };
-    }
-
-    document.addEventListener('DOMContentLoaded', setupLogStream);
-
-    const projectForm = document.querySelector('.process-project-form');
-    if (projectForm) {
-        projectForm.addEventListener('submit', async function(event) {
-            event.preventDefault();
-            attachLlmMode(event);
-
-            const formData = new FormData(projectForm);
-            const statusDiv = document.getElementById('project-status');
-            statusDiv.className = 'status-message';
-            statusDiv.innerHTML = 'Processing project... please wait.';
-            statusDiv.classList.add('info');
-
-            try {
-                const response = await fetch('/process-project', {
-                    method: 'POST',
-                    body: formData
-                });
-                
-                let result = {};
-                try {
-                    result = await response.json();
-                    console.log("Received JSON response:", result);
-                } catch (parseError) {
-                    const textContent = await response.text();
-                    console.error("Failed to parse JSON response:", parseError);
-                    console.log("Raw response text:", textContent.substring(0, 500) + "...");
-                    result = { 
-                        error: "Failed to parse server response: " + parseError.message,
-                        message: "Server returned non-JSON response",
-                        logs: ["Error parsing server response. Raw content (truncated):", textContent.substring(0, 300) + "..."]
-                    };
-                }
-                
-                if (response.ok) {
-                    statusDiv.innerHTML = result.message || 'Project processing completed.';
-                    statusDiv.classList.remove('info', 'error');
-                    statusDiv.classList.add('success');
-                    
-                    displayLogs(result.logs, statusDiv);
-                } else {
-                    statusDiv.innerHTML = 'Error: ' + (result.error || result.message || 'Unknown error');
-                    statusDiv.classList.remove('info', 'success');
-                    statusDiv.classList.add('error');
-                    
-                    displayLogs(result.logs, statusDiv);
-                }
-            } catch (error) {
-                console.error("Network or fetch error:", error);
-                statusDiv.innerHTML = 'Network error or server unavailable: ' + error.toString();
-                statusDiv.classList.remove('info', 'success');
-                statusDiv.classList.add('error');
-            }
-        });
-    }
-    
-    document.querySelectorAll('.generate-form').forEach(form => {
-        form.addEventListener('submit', async function(event) {
-            event.preventDefault();
-            attachLlmMode(event);
-
-            const formData = new FormData(form);
-            const filePath = formData.get('path');
-            const safeFilePathId = filePath.replace(/\\./g, '-').replace(/\\//g, '-');
-            const statusDiv = document.getElementById(`status-${safeFilePathId}`);
-            
-            if (!statusDiv) {
-                console.error('Could not find status div for', filePath);
-                return;
-            }
-
-            statusDiv.className = 'file-status status-message';
-            statusDiv.innerHTML = `Processing ${escapeHtml(filePath)}...`;
-            statusDiv.classList.add('info');
-
-            try {
-                const response = await fetch('/generate', {
-                    method: 'POST',
-                    body: formData
-                });
-                
-                let result = {};
-                try {
-                    result = await response.json();
-                    console.log("Received JSON response for file:", filePath, result);
-                } catch (parseError) {
-                    const textContent = await response.text();
-                    console.error("Failed to parse JSON for file:", filePath, parseError);
-                    console.log("Raw response text:", textContent.substring(0, 500) + "...");
-                    result = { 
-                        error: "Failed to parse server response: " + parseError.message,
-                        logs: ["Error parsing server response. Raw content (truncated):", textContent.substring(0, 300) + "..."]
-                    };
-                }
-
-                if (response.ok) {
-                    statusDiv.innerHTML = `Successfully processed ${escapeHtml(filePath)}.<br>Readme: ${escapeHtml(result.readme_path || 'unknown')}`;
-                    statusDiv.classList.remove('info', 'error');
-                    statusDiv.classList.add('success');
-                    
-                    displayLogs(result.logs, statusDiv);
-                } else {
-                    statusDiv.innerHTML = `Error processing ${escapeHtml(filePath)}: ${escapeHtml(result.error || 'Unknown error')}`;
-                    statusDiv.classList.remove('info', 'success');
-                    statusDiv.classList.add('error');
-                    
-                    displayLogs(result.logs, statusDiv);
-                }
-            } catch (error) {
-                console.error("Network or fetch error for file:", filePath, error);
-                statusDiv.innerHTML = `Network error for ${escapeHtml(filePath)}: ${escapeHtml(error.toString())}`;
-                statusDiv.classList.remove('info', 'success');
-                statusDiv.classList.add('error');
-            }
-        });
-    });
-  </script>
-</body>
-</html>
-"""
-
-
 # Helper to collect files, consistent with readme_sync.py logic
 def get_project_files(root_path):
     files_to_process = []
@@ -466,9 +128,7 @@ def index():
             display_files.append(str(p.relative_to(ROOT)))
 
         print("DEBUG: Attempting to render template...", file=sys.stderr)
-        response = render_template_string(
-            INDEX_HTML, files=sorted(list(set(display_files)))
-        )
+        response = render_template("index.html", files=sorted(list(set(display_files))))
         print("DEBUG: Template rendered successfully.", file=sys.stderr)
         return response
     except Exception as e:
@@ -756,8 +416,8 @@ def process_project():
                         f"WEB_APP: Using {MAX_WORKERS} workers for local LLM processing"
                     )
                 else:  # llm_mode_choice == "2" (remote)
-                    # Default to 4 workers for remote LLM if not specified
-                    DEFAULT_REMOTE_WORKERS = 4
+                    # Default to 6 workers for remote LLM if not specified
+                    DEFAULT_REMOTE_WORKERS = 6  # Increased from 4 to 6 for better performance with remote LLM
                     MAX_WORKERS = int(
                         os.getenv("REMOTE_MAX_WORKERS", str(DEFAULT_REMOTE_WORKERS))
                     )
@@ -938,15 +598,47 @@ def process_project():
                 # Update processing status to inactive
                 with STATUS_LOCK:
                     PROCESSING_STATUS["active"] = False
-                # Rest of exception handling...
-                # Not modifying this part
+
+                web_log(f"WEB_APP: Exception during project processing: {inner_e}")
+                import traceback
+
+                tb_str = traceback.format_exc()
+                web_log(f"WEB_APP: Traceback: {tb_str}")
+
+                return (
+                    jsonify(
+                        error=f"Server error: {str(inner_e)}",
+                        processed_count=processed_files_count,
+                        total_files=len(project_files_list),
+                        failed_files=failed_files_details_map,
+                        total_tokens=current_total_tokens,
+                        logs=WEB_APP_LOG_BUFFER[-15:],
+                    ),
+                    500,
+                )
 
     except Exception as outer_e:
         # Update processing status to inactive
         with STATUS_LOCK:
             PROCESSING_STATUS["active"] = False
-        # Rest of exception handling...
-        # Not modifying this part
+
+        web_log(f"WEB_APP: Critical error in process-project: {outer_e}")
+        import traceback
+
+        tb_str = traceback.format_exc()
+        web_log(f"WEB_APP: Traceback: {tb_str}")
+
+        return (
+            jsonify(
+                error=f"Critical server error: {str(outer_e)}",
+                processed_count=processed_files_count,
+                total_files=len(project_files_list),
+                failed_files={},
+                total_tokens=current_total_tokens,
+                logs=WEB_APP_LOG_BUFFER[-15:],
+            ),
+            500,
+        )
 
 
 @app.route("/log-stream")
