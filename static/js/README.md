@@ -2,14 +2,16 @@
 ## main.js
 
 **For Non-Technical Readers:**
-This JavaScript file is part of a web application that enhances user interaction on a webpage. It handles form submissions, displays processing status, and streams logs in real-time. The code ensures that user-generated content is displayed safely, preventing potential security threats. It also automates form-filling by syncing multiple fields with a selected value from a dropdown menu. Overall, this code improves the user experience by providing real-time feedback and simplifying form interactions.
+This file contains functions that help keep web applications safe and user-friendly. It includes tools to prevent security issues by making user-generated content safe to display, to show log messages in a readable format, to synchronize settings across a form, and to display live updates and logs. These features enhance the overall user experience by providing a secure, interactive, and informative interface.
 
-**PRIMARY TECHNICAL RESPONSIBILITY FROM A USER PERSPECTIVE:**
-The main purpose of this JavaScript file is to manage user interactions on a web page, including form submissions, log streaming, and automating certain form fields. It ensures that user-generated content is displayed safely and provides real-time updates on processing status and logs.
+PRIMARY TECHNICAL RESPONSIBILITY FROM A USER PERSPECTIVE:
+The file is primarily responsible for enhancing user interaction and safety within a web application. It achieves this through four key functions: making user-generated content safe to display, displaying log messages, synchronizing form settings, and providing live log updates.
 
-**KEY USER-FACING COMPONENTS AND USAGE:**
-- **`escapeHtml(unsafe)`**: This function takes a string input that may contain HTML special characters and converts it into a safe format for display on a web page. It prevents cross-site scripting (XSS) attacks by replacing characters like `<`, `>`, `&`, `"`, and `'` with their corresponding HTML entities.
-- **`displayLogs(logsArray, targetElement)`**: This function displays an array of log messages within a specified HTML element on a webpage. It formats the log messages into an HTML string, escaping any HTML characters to prevent code injection, and appends them to the target element.
-- **`attachLlmMode(event)`**: This function updates all form fields with a specific class (`llm_mode_input`) to match the value selected from a dropdown menu (`llm_mode_select`). It simplifies form-filling by automating the syncing of multiple fields with the selected value.
-- **`setupLogStream()`**: This function establishes a connection to a log stream server, displaying real-time log messages in a designated container on the webpage. It also updates a status indicator based on the received data and attempts to reconnect if the connection is lost.
+KEY USER-FACING COMPONENTS AND USAGE:
+- **`escapeHtml(unsafe)`**: This function takes user-generated content or any text that might contain special HTML characters and converts it into a safe format for display on a web page, preventing potential security vulnerabilities like cross-site scripting (XSS).
+- **`displayLogs(logsArray, targetElement)`**: Displays an array of log messages within a specified HTML element on a webpage, providing users with feedback about the execution of a program or process. It ensures the log messages are displayed safely and are formatted for readability.
+- **`attachLlmMode(event)`**: Synchronizes a selected mode across multiple input fields within a form when a specific event occurs, such as form submission or a change event. This simplifies user interaction by ensuring consistency across related fields.
+- **`setupLogStream()`**: Establishes a live log stream connection, displaying system logs and status updates in real-time on a webpage. This allows users to monitor the application's status and troubleshoot issues without needing to refresh the page.
+
+These components work together to create a more secure, interactive, and user-friendly web application.
 <!-- END summary: main.js -->

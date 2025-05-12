@@ -584,10 +584,12 @@ def summarise_file(path: Path, llm_mode_choice: str) -> str:
 
                 llm_response_str = ""
                 if llm_mode_choice == "1":
-                    llm_response_str = local_llm.llm_call(prompt_text)
+                    llm_response_str = local_llm.llm_call(prompt_text, str(path))
                 elif llm_mode_choice == "2":
                     try:
-                        llm_response_str = remote_llm.llm_call_remote(prompt_text)
+                        llm_response_str = remote_llm.llm_call_remote(
+                            prompt_text, None, str(path)
+                        )
                     except ValueError as e:  # Catch API key error
                         print(
                             f"ERROR during remote LLM call in summarise_file (unit summary): {e}",
@@ -599,7 +601,7 @@ def summarise_file(path: Path, llm_mode_choice: str) -> str:
                         f"Warning: Invalid llm_mode_choice '{llm_mode_choice}' in summarise_file (unit). Defaulting to local.",
                         file=sys.stderr,
                     )
-                    llm_response_str = local_llm.llm_call(prompt_text)
+                    llm_response_str = local_llm.llm_call(prompt_text, str(path))
 
                 # Use the raw text response as the blurb, no JSON parsing
                 text_blurb_for_rollup = llm_response_str
@@ -650,10 +652,10 @@ def summarise_file(path: Path, llm_mode_choice: str) -> str:
         rollup = prompts.get_rollup_prompt(blurbs)
         final_summary = ""
         if llm_mode_choice == "1":
-            final_summary = local_llm.llm_call(rollup)
+            final_summary = local_llm.llm_call(rollup, str(path))
         elif llm_mode_choice == "2":
             try:
-                final_summary = remote_llm.llm_call_remote(rollup)
+                final_summary = remote_llm.llm_call_remote(rollup, None, str(path))
             except ValueError as e:  # Catch API key error
                 print(
                     f"ERROR during remote LLM call in summarise_file (rollup): {e}",
@@ -665,7 +667,7 @@ def summarise_file(path: Path, llm_mode_choice: str) -> str:
                 f"Warning: Invalid llm_mode_choice '{llm_mode_choice}' in summarise_file (rollup). Defaulting to local.",
                 file=sys.stderr,
             )
-            final_summary = local_llm.llm_call(rollup)
+            final_summary = local_llm.llm_call(rollup, str(path))
 
         summary_snippet = final_summary[:100].replace("\n", " ").replace("'", "\\' ")
         print(
@@ -721,10 +723,12 @@ def summarise_file(path: Path, llm_mode_choice: str) -> str:
                     # Try direct approach
                     retry_summary = ""
                     if llm_mode_choice == "1":
-                        retry_summary = local_llm.llm_call(direct_prompt)
+                        retry_summary = local_llm.llm_call(direct_prompt, str(path))
                     elif llm_mode_choice == "2":
                         try:
-                            retry_summary = remote_llm.llm_call_remote(direct_prompt)
+                            retry_summary = remote_llm.llm_call_remote(
+                                direct_prompt, None, str(path)
+                            )
                         except ValueError as e:  # Catch API key error
                             print(
                                 f"ERROR during remote LLM call in summarise_file (retry summary): {e}",
@@ -737,7 +741,7 @@ def summarise_file(path: Path, llm_mode_choice: str) -> str:
                             f"Warning: Invalid llm_mode_choice '{llm_mode_choice}' in summarise_file (retry). Defaulting to local.",
                             file=sys.stderr,
                         )
-                        retry_summary = local_llm.llm_call(direct_prompt)
+                        retry_summary = local_llm.llm_call(direct_prompt, str(path))
 
                     # Check if we got a better result
                     if (
@@ -1103,17 +1107,29 @@ def process_paths(
                         log_message(
                             f"Updated (sequentially): {readme_file_path} for {path_to_process.name}"
                         )
+                        log_message(
+                            f"************************* Completed processing: {path_to_process} *************************"
+                        )
                     elif md_summary:  # Error occurred
                         log_message(
                             f"Skipping injection for {path_to_process.name} due to summarization error: {md_summary[:100]}..."
+                        )
+                        log_message(
+                            f"************************* Failed processing: {path_to_process} *************************"
                         )
                     else:  # No summary
                         log_message(
                             f"Warning: No summary generated for {path_to_process.name}"
                         )
+                        log_message(
+                            f"************************* Failed processing: {path_to_process} *************************"
+                        )
                 except Exception as exc:
                     log_message(
                         f"Error processing {path_to_process} sequentially: {exc}"
+                    )
+                    log_message(
+                        f"************************* Failed processing: {path_to_process} *************************"
                     )
             if _TOKEN_ENCODING:
                 log_message(
@@ -1143,13 +1159,25 @@ def process_paths(
                     readme_lock = _get_readme_lock(readme_file_path)
                     with readme_lock:
                         _inject(readme_file_path, path_processed.name, md_summary)
+                    log_message(
+                        f"Successfully updated {readme_file_path} for {path_processed.name}"
+                    )
+                    log_message(
+                        f"************************* Completed processing: {path_processed} *************************"
+                    )
                 elif md_summary:  # Error occurred during summarization
                     log_message(
                         f"Skipping injection for {path_processed.name} due to summarization error: {md_summary[:100]}..."
                     )
+                    log_message(
+                        f"************************* Failed processing: {path_processed} *************************"
+                    )
                 else:  # No summary generated
                     log_message(
                         f"Warning: No summary generated (empty) for {path_processed.name}"
+                    )
+                    log_message(
+                        f"************************* Failed processing: {path_processed} *************************"
                     )
             except Exception as exc:
                 log_message(
@@ -1158,6 +1186,10 @@ def process_paths(
             processed_count += 1
             log_message(
                 f"Completed processing ({processed_count}/{len(valid_paths_for_summarization)}): {path_processed.name}"
+            )
+            # Add separator line after each file is processed
+            log_message(
+                f"************************* Completed processing: {path_processed} *************************"
             )
 
     log_message(f"Finished processing all {len(valid_paths_for_summarization)} files.")
@@ -1216,12 +1248,21 @@ def process_single_file(file_path: Path, llm_mode: str) -> bool:
             with readme_lock:
                 _inject(readme_file_path, file_path.name, md_summary)
             log_message(f"Successfully updated {readme_file_path} for {file_path.name}")
+            log_message(
+                f"************************* Completed processing: {file_path} *************************"
+            )
             return True
         elif md_summary:  # Error occurred
             log_message(f"Error summarizing {file_path.name}: {md_summary[:100]}...")
+            log_message(
+                f"************************* Failed processing: {file_path} *************************"
+            )
             return False
         else:  # No summary
             log_message(f"No summary generated for {file_path.name}")
+            log_message(
+                f"************************* Failed processing: {file_path} *************************"
+            )
             return False
     except Exception as e:
         log_message(f"Error processing {file_path}: {e}")

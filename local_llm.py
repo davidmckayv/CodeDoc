@@ -27,7 +27,7 @@ _CACHE_LOCK = threading.Lock()
 
 
 # ------------------ helpers ------------------
-def llm_call(prompt: str) -> str:
+def llm_call(prompt: str, file_path: str | None = None) -> str:
     """Blocking call to local Ollama via httpx, with thread-safe caching and retries."""
     with _CACHE_LOCK:
         if prompt in _CACHE:
@@ -44,19 +44,21 @@ def llm_call(prompt: str) -> str:
         None  # Store the most recent error for backoff calculation
     )
 
+    file_info = f" for file '{file_path}'" if file_path else ""
+
     for attempt in range(LLM_MAX_RETRIES):
         try:
             prompt_snippet = prompt[:50].replace("\n", " ").replace("'", "\\'")
             thread_id = threading.get_ident()
             print(
-                f"[Thread-{thread_id}] DEBUG_LLM: Attempt {attempt + 1}/{LLM_MAX_RETRIES} for prompt starting with '{prompt_snippet}...'",
+                f"[Thread-{thread_id}] DEBUG_LLM: Attempt {attempt + 1}/{LLM_MAX_RETRIES}{file_info} for prompt starting with '{prompt_snippet}...'",
                 file=sys.stderr,
             )
 
             # Use longer timeout to handle model loading
             timeout = LLM_FIRST_ATTEMPT_TIMEOUT if attempt == 0 else LLM_CLIENT_TIMEOUT
             print(
-                f"[Thread-{thread_id}] Using timeout of {timeout:.1f} seconds for attempt {attempt + 1}",
+                f"[Thread-{thread_id}] Using timeout of {timeout:.1f} seconds for attempt {attempt + 1}{file_info}",
                 file=sys.stderr,
             )
             with httpx.Client(timeout=timeout) as client:
@@ -81,7 +83,7 @@ def llm_call(prompt: str) -> str:
             last_error = e
             response_text = f"Error: Ollama call timed out - {e}"
             print(
-                f"Warning: Ollama call timed out (attempt {attempt + 1}/{LLM_MAX_RETRIES}): {e}",
+                f"Warning: Ollama call timed out{file_info} (attempt {attempt + 1}/{LLM_MAX_RETRIES}): {e}",
                 file=sys.stderr,
             )
         except httpx.HTTPStatusError as e:
@@ -90,13 +92,13 @@ def llm_call(prompt: str) -> str:
             # Retry only on 5xx server errors
             if 500 <= e.response.status_code < 600:
                 print(
-                    f"Warning: Ollama call failed with HTTP status {e.response.status_code} (attempt {attempt + 1}/{LLM_MAX_RETRIES}). Retrying...",
+                    f"Warning: Ollama call failed{file_info} with HTTP status {e.response.status_code} (attempt {attempt + 1}/{LLM_MAX_RETRIES}). Retrying...",
                     file=sys.stderr,
                 )
             else:
                 # For 4xx errors, don't retry, just report.
                 print(
-                    f"Error: Ollama call failed with HTTP status {e.response.status_code}. Not retrying.",
+                    f"Error: Ollama call failed{file_info} with HTTP status {e.response.status_code}. Not retrying.",
                     file=sys.stderr,
                 )
                 break  # Do not retry client errors (4xx)
@@ -104,7 +106,7 @@ def llm_call(prompt: str) -> str:
             last_error = e
             response_text = f"Error: Ollama request failed - {e}"
             print(
-                f"Warning: Ollama request failed (attempt {attempt + 1}/{LLM_MAX_RETRIES}): {e}",
+                f"Warning: Ollama request failed{file_info} (attempt {attempt + 1}/{LLM_MAX_RETRIES}): {e}",
                 file=sys.stderr,
             )
         except (
@@ -113,7 +115,7 @@ def llm_call(prompt: str) -> str:
             last_error = e
             response_text = f"Error: Unexpected error during Ollama call - {e}"
             print(
-                f"Warning: Unexpected error in llm_call (attempt {attempt + 1}/{LLM_MAX_RETRIES}): {e}",
+                f"Warning: Unexpected error in llm_call{file_info} (attempt {attempt + 1}/{LLM_MAX_RETRIES}): {e}",
                 file=sys.stderr,
             )
             # Depending on the error, you might choose to break or continue retrying.
@@ -136,7 +138,7 @@ def llm_call(prompt: str) -> str:
                         4**attempt
                     )  # Even more aggressive backoff
                     print(
-                        f"Model loading error detected. Using extra long delay of {backoff_delay} seconds...",
+                        f"Model loading error detected{file_info}. Using extra long delay of {backoff_delay} seconds...",
                         file=sys.stderr,
                     )
                     time.sleep(backoff_delay)
@@ -149,20 +151,20 @@ def llm_call(prompt: str) -> str:
                         1, backoff_delay + jitter
                     )  # Ensure minimum 1s delay
                     print(
-                        f"Waiting {actual_delay:.1f} seconds before next retry (exponential backoff for 500 error)...",
+                        f"Waiting {actual_delay:.1f} seconds before next retry{file_info} (exponential backoff for 500 error)...",
                         file=sys.stderr,
                     )
                     time.sleep(actual_delay)
             else:
                 # Standard fixed delay for other errors
                 print(
-                    f"Waiting {LLM_RETRY_DELAY} seconds before next retry...",
+                    f"Waiting {LLM_RETRY_DELAY} seconds before next retry{file_info}...",
                     file=sys.stderr,
                 )
                 time.sleep(LLM_RETRY_DELAY)
         else:  # Last attempt failed
             print(
-                f"Error: All {LLM_MAX_RETRIES} retry attempts failed for Ollama call.",
+                f"Error: All {LLM_MAX_RETRIES} retry attempts failed for Ollama call{file_info}.",
                 file=sys.stderr,
             )
 
@@ -174,7 +176,7 @@ def llm_call(prompt: str) -> str:
     prompt_snippet_for_final_debug = (
         prompt[:50].replace("\n", " ").replace("'", "\\'")
     )  # Clean for printing
-    final_debug_msg_prefix = f"DEBUG_LLM: Final status for prompt starting with '{prompt_snippet_for_final_debug}...'"
+    final_debug_msg_prefix = f"DEBUG_LLM: Final status{file_info} for prompt starting with '{prompt_snippet_for_final_debug}...'"
     if response_text.startswith("Error:"):
         # For errors, the response_text can be long, so truncate it more aggressively for the log too.
         error_snippet = response_text[:150].replace("\n", " ").replace("'", "\\'")

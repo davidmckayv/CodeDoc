@@ -44,7 +44,9 @@ def get_openai_client():
     )
 
 
-def llm_call_remote(prompt: str, model_name: str | None = None) -> str:
+def llm_call_remote(
+    prompt: str, model_name: str | None = None, file_path: str | None = None
+) -> str:
     """Blocking call to Together AI API, with thread-safe caching and retries."""
     model_to_use = model_name if model_name else DEFAULT_REMOTE_MODEL
     cache_key = f"{model_to_use}:{prompt}"
@@ -55,6 +57,7 @@ def llm_call_remote(prompt: str, model_name: str | None = None) -> str:
 
     try:
         response_text = "Error: Max retries reached for Remote LLM call."
+        file_info = f" for file '{file_path}'" if file_path else ""
 
         for attempt in range(REMOTE_LLM_MAX_RETRIES):
             try:
@@ -62,7 +65,7 @@ def llm_call_remote(prompt: str, model_name: str | None = None) -> str:
                 prompt_snippet = prompt[:50].replace("\n", " ").replace("'", "\\'")
                 thread_id = threading.get_ident()
                 log_message(
-                    f"[Thread-{thread_id}] DEBUG_REMOTE_LLM: Attempt {attempt + 1}/{REMOTE_LLM_MAX_RETRIES} for model '{model_to_use}' prompt starting with '{prompt_snippet}...'"
+                    f"[Thread-{thread_id}] DEBUG_REMOTE_LLM: Attempt {attempt + 1}/{REMOTE_LLM_MAX_RETRIES}{file_info} for model '{model_to_use}' prompt starting with '{prompt_snippet}...'"
                 )
 
                 completion = client.chat.completions.create(
@@ -93,19 +96,19 @@ Follow these instructions STRICTLY:
             except openai.APIConnectionError as e:
                 response_text = f"Error: Remote LLM API connection error - {e}"
                 log_message(
-                    f"Warning: Remote LLM API connection error (attempt {attempt + 1}/{REMOTE_LLM_MAX_RETRIES}): {e}"
+                    f"Warning: Remote LLM API connection error{file_info} (attempt {attempt + 1}/{REMOTE_LLM_MAX_RETRIES}): {e}"
                 )
             except openai.RateLimitError as e:
                 response_text = f"Error: Remote LLM API rate limit exceeded - {e}"
                 log_message(
-                    f"Warning: Remote LLM API rate limit exceeded (attempt {attempt + 1}/{REMOTE_LLM_MAX_RETRIES}): {e}"
+                    f"Warning: Remote LLM API rate limit exceeded{file_info} (attempt {attempt + 1}/{REMOTE_LLM_MAX_RETRIES}): {e}"
                 )
                 # For rate limit errors, backing off is crucial.
                 # Consider a more sophisticated backoff if this becomes common.
             except openai.APIStatusError as e:
                 response_text = f"Error: Remote LLM API status error ({e.status_code}) - {e.response}"
                 log_message(
-                    f"Warning: Remote LLM API status error (attempt {attempt + 1}/{REMOTE_LLM_MAX_RETRIES}): {e}"
+                    f"Warning: Remote LLM API status error{file_info} (attempt {attempt + 1}/{REMOTE_LLM_MAX_RETRIES}): {e}"
                 )
                 # Don't retry on 4xx client errors other than rate limits (handled above) or timeouts (handled by openai.APITimeoutError)
                 if 400 <= e.status_code < 500 and e.status_code not in [
@@ -116,23 +119,23 @@ Follow these instructions STRICTLY:
             except openai.APITimeoutError as e:
                 response_text = f"Error: Remote LLM API request timed out - {e}"
                 log_message(
-                    f"Warning: Remote LLM API request timed out (attempt {attempt + 1}/{REMOTE_LLM_MAX_RETRIES}): {e}"
+                    f"Warning: Remote LLM API request timed out{file_info} (attempt {attempt + 1}/{REMOTE_LLM_MAX_RETRIES}): {e}"
                 )
             except Exception as e:  # Catch any other unexpected errors
                 response_text = f"Error: Unexpected error during Remote LLM call - {e}"
                 log_message(
-                    f"Warning: Unexpected error in llm_call_remote (attempt {attempt + 1}/{REMOTE_LLM_MAX_RETRIES}): {type(e).__name__} - {e}"
+                    f"Warning: Unexpected error in llm_call_remote{file_info} (attempt {attempt + 1}/{REMOTE_LLM_MAX_RETRIES}): {type(e).__name__} - {e}"
                 )
                 break  # Don't retry unknown errors by default
 
             if attempt < REMOTE_LLM_MAX_RETRIES - 1:
                 log_message(
-                    f"Waiting {REMOTE_LLM_RETRY_DELAY} seconds before next retry..."
+                    f"Waiting {REMOTE_LLM_RETRY_DELAY} seconds before next retry{file_info}..."
                 )
                 time.sleep(REMOTE_LLM_RETRY_DELAY)
             else:  # Last attempt failed
                 log_message(
-                    f"Error: All {REMOTE_LLM_MAX_RETRIES} retry attempts failed for Remote LLM call to model '{model_to_use}'."
+                    f"Error: All {REMOTE_LLM_MAX_RETRIES} retry attempts failed for Remote LLM call to model '{model_to_use}'{file_info}."
                 )
 
         # After the loop (or break from it)
@@ -145,7 +148,7 @@ Follow these instructions STRICTLY:
         prompt_snippet_for_final_debug = (
             prompt[:50].replace("\n", " ").replace("'", "\\'")
         )
-        final_debug_msg_prefix = f"DEBUG_REMOTE_LLM: Final status for model '{model_to_use}' prompt starting with '{prompt_snippet_for_final_debug}...'"
+        final_debug_msg_prefix = f"DEBUG_REMOTE_LLM: Final status for model '{model_to_use}'{file_info} prompt starting with '{prompt_snippet_for_final_debug}...'"
         if response_text.startswith("Error:"):
             error_snippet = response_text[:150].replace("\n", " ").replace("'", "\\'")
             log_message(
