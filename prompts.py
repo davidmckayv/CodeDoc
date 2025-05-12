@@ -77,9 +77,9 @@ Task: Generate a concise Markdown summary for a README.md, focusing on user inte
 
 Format:
 ### Unit: {name_for_prompt} ({kind}, Python)
-**Overall Purpose for Users:** [1-2 sentences: How this module helps a user or another developer integrate or use its functionalities.]
-**Key Publicly Accessible Features:** [List key functions/classes/constants intended for external use. For each, very briefly state its user-facing purpose.]
-**Typical Usage Scenarios:** [Briefly describe how a user might import and use the main features of this module.]
+**Overall Purpose for Users:** [Thorough explanation of how this module helps a user or another developer integrate or use its functionalities. Be comprehensive while focusing only on what's evident in the code.]
+**Key Publicly Accessible Features:** [List key functions/classes/constants intended for external use. For each, provide a detailed explanation of its user-facing purpose.]
+**Typical Usage Scenarios:** [Describe how a user might import and use the main features of this module. Include multiple usage patterns if evident in the code.]
 **Configuration or Setup for Users (if any):** [Mention if users need to configure anything before using the module's features.]
 
 {CORE_SYSTEM_BEHAVIOR_PROMPT_BLOCK}
@@ -101,13 +101,13 @@ Task: Generate a concise Markdown summary of the class definition for a README.m
 
 Format:
 ### Unit: {name_for_prompt} ({kind}, Python)
-**Purpose and Role:** [1-2 sentences: Main technical purpose of the class from a user's perspective and how it's intended to be used.]
+**Purpose and Role:** [Thorough explanation of the main technical purpose of the class from a user's perspective and how it's intended to be used. Be comprehensive while staying focused on what's evident in the code.]
 **Key Public Attributes (if any):** (or "None intended for direct public use by users")
-- `attribute_name` (Type Hint/Inferred): [Brief purpose. Initial Value: if available. Note if primarily for internal configuration.]
+- `attribute_name` (Type Hint/Inferred): [Detailed purpose. Initial Value: if available. Note if primarily for internal configuration.]
 **Inheritance (if any):** [List base classes, or "None"]
 **Key Public Methods and Usage:** (or "None" or "Primarily internal methods not for direct user interaction")
 - `method_name(parameters)`: [Describe what this method does for the user and common scenarios for calling it. Focus on methods a user would call directly. De-emphasize or omit internal/private methods (e.g., those starting with '_') unless their role is essential for understanding public behavior.]
-**Primary Use Cases:** [Provide 1-2 brief examples of how an end-user would typically instantiate and use this class to achieve a goal.]
+**Primary Use Cases:** [Provide detailed examples of how an end-user would typically instantiate and use this class to achieve a goal.]
 
 {CORE_SYSTEM_BEHAVIOR_PROMPT_BLOCK}
 Python '{kind}' Code ('{name_for_prompt}'):
@@ -128,13 +128,13 @@ Task: Generate a concise Markdown summary for a README.md, focusing on user inte
 
 Format:
 ### Unit: {name_for_prompt} ({kind}, Python)
-**Purpose and User Interaction:** [1-2 sentences: What this {kind} does for the user and common scenarios for calling it.]
+**Purpose and User Interaction:** [Thorough explanation of what this {kind} does for the user and common scenarios for calling it. Be comprehensive while staying focused on what's evident in the code.]
 **Parameters (for user input):** (or "None")
 - `param_name` (Type Hint/Inferred): [User-relevant purpose. Default: value, if any.]
 **Return Value (for user consumption):** (or "None explicitly returned" / "N/A for direct user consumption")
-- (Type Hint/Inferred): [Description of what is returned that is meaningful to the user.]
+- (Type Hint/Inferred): [Detailed description of what is returned that is meaningful to the user.]
 **Primary Use Cases/Examples:**
-- [Briefly describe 1-2 typical ways a user would call this {kind} and what they'd achieve.]
+- [Describe typical ways a user would call this {kind} and what they'd achieve. Include multiple usage patterns if evident from the code.]
 **Key User-Impacting Logic/Behaviors:**
 - [List the key operations or distinct behaviors that directly affect the user or the outcome they receive. De-emphasize internal implementation details.]
 
@@ -162,20 +162,20 @@ Task: Generate a concise Markdown summary for a README.md, focusing on user inte
 
 Format:
 ### Unit: {name_for_prompt} ({kind}, {lang_ext_for_prompt.upper()})
-**Purpose and User Interaction:** [1-2 sentences: What this {kind} (e.g., function, class, method, script) does for the user and common scenarios for its use. {script_specific_note}]
+**Purpose and User Interaction:** [Thorough explanation of what this {kind} (e.g., function, class, method, script) does for the user and common scenarios for its use. Be comprehensive while staying focused on what's evident in the code. {script_specific_note}]
 **Key Public Interface Elements:**
   * **For Functions/Methods/Procedures:**
     *   **Parameters/Arguments (for user input):** (or "None")
         - `param_name` (Type Decl./Inferred): [User-relevant purpose. Default: value, if any.]
     *   **Return Value/Output (for user consumption):** (or "N/A for direct user consumption" or "Produces side effects described below")
-        - (Type Decl./Inferred): [Description of what is returned/outputted that is meaningful to the user.]
+        - (Type Decl./Inferred): [Detailed description of what is returned/outputted that is meaningful to the user.]
   * **For Classes/Structs/Interfaces/Modules (or similar aggregate types):**
     *   **Key Public Attributes/Properties/Constants:** (or "None intended for direct public use")
         - `attribute_name` (Type Decl./Inferred): [User-relevant purpose.]
     *   **Key Public Methods/Functions/Subroutines:** (or "None intended for direct public use")
         - `method_name(parameters)`: [User-relevant purpose and how to call it.]
 **Primary Use Cases/Examples:**
-- [Briefly describe 1-2 typical ways a user would utilize this {kind} (e.g., call the function, instantiate the class, run the script) and what they'd achieve. Focus on its public API or observable behavior.]
+- [Describe typical ways a user would utilize this {kind} (e.g., call the function, instantiate the class, run the script) and what they'd achieve. Focus on its public API or observable behavior. Include multiple examples if appropriate.]
 **Key User-Impacting Logic/Behavior or Observable Output:**
 - [List the key operations or behaviors that directly affect the user, the outcome they receive, or observable outputs/side-effects. De-emphasize internal implementation details.]
 
@@ -196,7 +196,7 @@ def get_file_chunk_prompt(
     """Simplified prompt for summarizing a file chunk."""
     return f"""You are a Code Segment Summarizer.
 Input: Code segment '{name_for_prompt}' from file '{file_path_name}' (language: {lang_ext_for_prompt}).
-Task: Provide a concise technical summary (1-3 sentences or a few bullet points) of THIS SEGMENT for a README.md.
+Task: Provide a comprehensive technical summary of THIS SEGMENT for a README.md.
 Focus on: Primary purpose, key operations/data structures in this segment. Note if incomplete.
 DO NOT speculate about the rest of the file.
 
@@ -220,11 +220,11 @@ Task: Generate a structured Markdown overview for a README.md, focusing on user-
 
 Format:
 ### File Overview: {name_for_prompt} ({lang_ext_for_prompt})
-**Overall Purpose for Users/Integrators:** [1-2 sentences: What this file provides to an end-user or a developer integrating with it. How would someone use the functionalities defined in this file?]
+**Overall Purpose for Users/Integrators:** [Thorough explanation of what this file provides to an end-user or a developer integrating with it. How would someone use the functionalities defined in this file? Be comprehensive while staying focused on what's evident in the code.]
 **Key Publicly Exposed Functionalities:** (or "Primarily internal logic" or "No direct user-facing functionalities defined")
-- **[Public Class/Function/Variable `ExampleName`]:** [Briefly, its purpose from a user's perspective and common usage patterns. De-emphasize internal helper functions/classes unless critical to explain public usage.]
+- **[Public Class/Function/Variable `ExampleName`]:** [Thorough explanation of its purpose from a user's perspective and common usage patterns. De-emphasize internal helper functions/classes unless critical to explain public usage.]
 - ... (List key publicly exposed functionalities. Focus on elements a user or integrator would directly interact with or need to understand.)
-**Typical Usage or Integration Points:** [Describe how a user or another part of the system would typically interact with or import from this file.]
+**Typical Usage or Integration Points:** [Describe how a user or another part of the system would typically interact with or import from this file. Include multiple usage patterns if evident from the code.]
 **Key External Dependencies Impacting Users (if any):** (or "None")
 - [List key imports that a user might need to be aware of or provide, e.g., 'Requires API_KEY for `some_module`'.]
 
@@ -243,16 +243,16 @@ def get_rollup_prompt(
     joined_blurbs_text = "\\n\\n".join(blurbs)  # Escaped for f-string
     return f"""You are a File Summary Synthesizer for README.md.
 Input: Text blurbs, each describing a part of a single software file.
-Task: Create a concise Markdown overview of the entire file, focusing on user-facing aspects. Goal: IDE RAG.
+Task: Create a comprehensive Markdown overview of the entire file, focusing on user-facing aspects. Goal: IDE RAG.
 
 Format:
 PRIMARY TECHNICAL RESPONSIBILITY FROM A USER PERSPECTIVE:
-[1-2 clear sentences: File's main purpose and overall role, as it pertains to an end-user or integrator, based ONLY on blurbs.]
+[Thorough explanation of file's main purpose and overall role, as it pertains to an end-user or integrator, based ONLY on blurbs.]
 
 KEY USER-FACING COMPONENTS AND USAGE:
-(List the key PUBLIC classes, functions, or methods that a user would directly interact with, based on the blurbs. For each, describe its purpose and common usage patterns from a user's perspective. Prioritize elements essential for understanding the file's primary user-facing role.)
-- **[Component Name 1 (e.g., Public Function `process_payment`)]**: [1-2 sentences: Its specific role and key actions/logic from a user's viewpoint, per blurbs.]
-- **[Component Name 2 (e.g., Public Class `ReportGenerator`)]**: [1-2 sentences: Its specific role and key actions/logic from a user's viewpoint, per blurbs.]
+(List the key PUBLIC classes, functions, or methods that a user would directly interact with, based on the blurbs. For each, provide a detailed description of its purpose and common usage patterns from a user's perspective. Prioritize elements essential for understanding the file's primary user-facing role.)
+- **[Component Name 1 (e.g., Public Function `process_payment`)]**: [Detailed explanation of its specific role and key actions/logic from a user's viewpoint, per blurbs.]
+- **[Component Name 2 (e.g., Public Class `ReportGenerator`)]**: [Detailed explanation of its specific role and key actions/logic from a user's viewpoint, per blurbs.]
 
 If input blurbs are insufficient for a meaningful user-focused summary, respond ONLY with: "Insufficient details to summarize this file from a user perspective."
 
@@ -268,16 +268,16 @@ def get_direct_summary_retry_prompt(
     """Simplified prompt for a direct whole-file summary (retry attempt)."""
     return f"""You are a Code File Summarizer for README.md (Retry Attempt).
 Input: Source code file '{file_path_name}' (language: {ext}).
-Task: Generate a concise Markdown overview, focusing on user-facing aspects. Goal: IDE RAG.
+Task: Generate a comprehensive Markdown overview, focusing on user-facing aspects. Goal: IDE RAG.
 
 Format:
 PRIMARY TECHNICAL RESPONSIBILITY FROM A USER PERSPECTIVE:
-[1-2 clear sentences: File's main technical purpose and overall role, as it pertains to an end-user or integrator, based ONLY on code.]
+[Thorough explanation of file's main technical purpose and overall role, as it pertains to an end-user or integrator, based ONLY on code.]
 
 KEY USER-FACING COMPONENTS AND USAGE:
-(List the key PUBLIC classes, functions, or methods that a user would directly interact with from the code. For each, describe its purpose and common usage patterns from a user's perspective. Prioritize elements essential for understanding the file's primary user-facing role.)
-- **[Component Name 1 (e.g., Public Function `initialize_system`)]**: [1-2 sentences: Its specific role and key actions/logic from a user's viewpoint, based on the code.]
-- **[Component Name 2 (e.g., Public Class `DataManager`)]**: [1-2 sentences: Its specific role and key actions/logic from a user's viewpoint, based on the code.]
+(List the key PUBLIC classes, functions, or methods that a user would directly interact with from the code. For each, provide a detailed description of its purpose and common usage patterns from a user's perspective. Prioritize elements essential for understanding the file's primary user-facing role.)
+- **[Component Name 1 (e.g., Public Function `initialize_system`)]**: [Detailed explanation of its specific role and key actions/logic from a user's viewpoint, based on the code.]
+- **[Component Name 2 (e.g., Public Class `DataManager`)]**: [Detailed explanation of its specific role and key actions/logic from a user's viewpoint, based on the code.]
 
 {CORE_SYSTEM_BEHAVIOR_PROMPT_BLOCK}
 Source Code ('{file_path_name}'):
