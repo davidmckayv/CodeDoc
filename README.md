@@ -157,18 +157,19 @@ python web_app.py  # then open http://localhost:5000
 <!-- BEGIN summary: web_app.py -->
 ## web_app.py
 
-## PRIMARY TECHNICAL RESPONSIBILITY FROM A USER PERSPECTIVE:
-The file appears to be a part of a web application responsible for managing and processing project files, generating summaries, and updating README.md files. It provides a user interface for interacting with the application's functionality, including logging, file processing, and real-time log monitoring.
+**For Non-Technical Readers:**
+This software component is designed to help users understand and manage the content of their project files by providing summaries and real-time log updates. It acts like a personal assistant that keeps track of what's happening in the project, making it easier to navigate and debug. The component is useful for developers and users who need to monitor and understand the activity within their projects.
 
-## KEY USER-FACING COMPONENTS AND USAGE:
-- **`web_log` function**: Logs messages with timestamps for both server logging and UI display. Users can utilize this function to record significant events or errors within the application. Example: `web_log("Server started successfully.")`
-- **`capture_stderr_globally` function**: A context manager that captures stderr output while still printing it to the actual stderr, allowing users to inspect or log stderr output. Example: `with capture_stderr_globally() as buffer: some_function_that_writes_to_stderr()`
-- **`ensure_readme_sync_tokenizer_initialized` function**: Initializes the `readme_sync._TOKEN_ENCODING` variable if not already set, ensuring the tokenizer is ready for use. Users can call this function to guarantee tokenizer initialization. Example: `ensure_readme_sync_tokenizer_initialized()`
-- **`get_project_files` function**: Retrieves a list of project files from a specified root directory, filtering by file extensions and exclusion rules. Example: `get_project_files(Path("/path/to/project"))`
-- **`index` function**: Handles user requests to the root path, listing project files and rendering an HTML template. 
-- **`generate` function**: A web application endpoint that generates a summary for a specified file and injects it into the corresponding README.md file. Users can call this endpoint with a valid file path and optionally select the LLM mode. Example: `generate(path="/path/to/file", llm_mode="1")`
-- **`process_project` function**: Processes a project by summarizing its files and updating README.md files. Users can call this function via a web request, influencing execution with the `llm_mode` parameter. Example: `process_project(llm_mode="1")`
-- **`log_stream` function**: Provides a server-sent event stream for real-time log monitoring, sending new log entries and processing status updates to connected clients.
+PRIMARY TECHNICAL RESPONSIBILITY FROM A USER PERSPECTIVE:
+The primary purpose of this file is to provide a set of functionalities that enable users to manage and understand their project files. It includes logging important events, capturing error messages, processing project files, generating summaries, and providing real-time log updates.
+
+KEY USER-FACING COMPONENTS AND USAGE:
+- **`web_log` function**: Logs important messages with timestamps, useful for debugging and monitoring the application's performance. Example: `web_log("User successfully logged in.")`
+- **`capture_stderr_globally` function**: Captures error messages while still displaying them to the user, useful for logging or debugging purposes. Example: `with capture_stderr_globally() as stderr_buffer: # Code that might produce stderr output`
+- **`index` function**: Generates a web page listing project files, making it easier for users to navigate through their projects.
+- **`generate` function**: Generates a summary for a given file and updates the corresponding README.md file, helping users understand the file's content. Example: Called via a web request with the file path and LLM mode.
+- **`process_project` function**: Summarizes project files and updates README.md files, making it easier to understand the project's structure and content. Example: Called via a web request with the desired LLM mode.
+- **`log_stream` function**: Provides a continuous stream of log updates, enabling real-time monitoring of the project's activity. Example: Used in a web application to display a live log feed.
 <!-- END summary: web_app.py -->
 
 <!-- BEGIN summary: local_llm.py -->
