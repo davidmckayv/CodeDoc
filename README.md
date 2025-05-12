@@ -178,30 +178,30 @@ These components work together to provide a comprehensive project management and
 ## local_llm.py
 
 **For Non-Technical Readers:**
-This software component enables applications to interact with a powerful computer model (Ollama) by sending it questions or prompts and receiving responses. It's like having a smart assistant that can answer questions, generate text, or summarize documents. The component also prepares the model for use by loading it into memory, ensuring it's ready to respond quickly when needed. This is useful for applications that require fast and accurate information processing, such as chatbots, content generation tools, or document analysis software.
+This software component is designed to interact with a language model, a type of AI that can understand and generate human-like text. It includes two main functionalities: sending requests to the language model and getting responses, and preloading the language model into the computer's memory for efficient use. These features are useful for automating tasks that involve text understanding or generation, such as answering questions, summarizing content, or creating text. By preloading the model, the system ensures quick responses when needed.
 
 **PRIMARY TECHNICAL RESPONSIBILITY FROM A USER PERSPECTIVE:**
-The primary role of this file is to facilitate interaction with a machine learning model (Ollama) by providing two key functionalities: sending prompts to the model and retrieving responses, and preloading the model into memory for faster response times. This enables applications to leverage the model's capabilities for various tasks, such as question-answering, text generation, and document summarization.
+The primary technical responsibility of this file is to facilitate interaction with a language model through two main functions: sending requests and receiving responses, and preloading the model for efficient use. This involves handling the communication between the user's application and the language model, ensuring robustness and efficiency.
 
 **KEY USER-FACING COMPONENTS AND USAGE:**
-- **`llm_call` Function**: This function sends a prompt or question to the Ollama model and retrieves its response. It's designed for scenarios where you need to get information or generate text based on a given input. You can use it by providing a prompt, and optionally, a file path for logging context. For example, you can ask the model a question like `llm_call("What is the capital of France?")` or generate text with `llm_call("Write a short story about a character who...")`. The function is robust, with features like retrying failed requests and caching responses.
-- **`preload_model` Function**: This function preloads the machine learning model into memory, ensuring it's ready for use and can respond quickly to requests. It's particularly useful in environments where fast response times are critical or where the model is used for parallel processing. You can use it to initialize the model before starting a batch processing job or to ensure the model is ready for incoming requests in a service. The function attempts to preload the model up to 3 times if initial attempts fail and provides feedback on the preloading process.
+- **`llm_call` function**: This function sends a request to the language model and returns a response. It takes a text prompt and optionally a file path as input. Users can utilize this function to ask questions, request text summarization, or generate text. The function includes features like request retrying and caching to ensure robustness.
+- **`preload_model` function**: This function preloads the language model into memory, ensuring it's ready for use when needed. It doesn't require any input parameters and returns a boolean indicating whether the preloading was successful. Users can call this function before starting tasks that rely on the language model to avoid initial delays.
 <!-- END summary: local_llm.py -->
 
 <!-- BEGIN summary: remote_llm.py -->
 ## remote_llm.py
 
 **For Non-Technical Readers:**
-This file contains functions that help with logging events, generating timestamps, and interacting with a powerful AI model called OpenAI. It's like having tools for keeping a diary (logging), taking snapshots of the current time, and asking questions to a very smart assistant. These tools are useful for creating applications that can track events, display the current time, and generate helpful content or answers.
+This file contains functions that help with logging events, generating timestamps, and interacting with AI models to generate text or answer questions. It's like having a toolkit that includes a clock for tracking time, a notepad for logging events, and a super-smart assistant for generating content or answering questions. These tools are useful for building applications that need to track events, display the current time, or leverage AI for various tasks.
 
-**PRIMARY TECHNICAL RESPONSIBILITY FROM A USER PERSPECTIVE:**
-The file provides a set of utility functions for logging, timestamp generation, and interaction with OpenAI's Large Language Models (LLMs). It enables applications to log events with timestamps, connect to OpenAI's services for tasks like content generation or question-answering, and handle interactions with LLMs in a robust manner.
+PRIMARY TECHNICAL RESPONSIBILITY FROM A USER PERSPECTIVE:
+The file is primarily responsible for providing utility functions that enable applications to log messages with timestamps, interact with OpenAI's services for AI-related tasks, and generate timestamps for various uses.
 
-**KEY USER-FACING COMPONENTS AND USAGE:**
-- **`get_timestamp()`**: Generates a human-readable timestamp representing the current date and time. Useful for logging events or displaying the current time in an application. Example: `current_time = get_timestamp(); print(current_time)`
-- **`log_message(message, file)`**: Logs a message with a timestamp to a specified output stream. Useful for tracking events or errors in an application. Example: `log_message("An error occurred while processing data.")`
-- **`get_openai_client()`**: Establishes a connection to OpenAI's services using a specific API key and settings. Useful for applications that need to leverage OpenAI's capabilities. Example: `client = get_openai_client()`
-- **`llm_call_remote(prompt, model_name, file_path)`**: Sends a prompt to a remote LLM and retrieves a response. Useful for tasks like content generation or question-answering. Example: `response = llm_call_remote("Generate a README.md summary.")`
+KEY USER-FACING COMPONENTS AND USAGE:
+- **`get_timestamp`**: Generates a human-readable timestamp representing the current date and time. It's used for logging events, displaying the current time, or recording when actions occur. Example: `timestamp = get_timestamp(); print(f"Event logged at: {timestamp}")`
+- **`log_message`**: Logs a message with a timestamp to a specified destination, such as the standard error stream or a file. It's useful for tracking events or debugging. Example: `log_message("User logged in successfully")`
+- **`get_openai_client`**: Establishes a connection to OpenAI's services using predefined settings and credentials. It's necessary for applications that need to interact with OpenAI's AI models. Example: `client = get_openai_client(); response = client.chat.completions.create(...)`
+- **`llm_call_remote`**: Sends a prompt to a remote Large Language Model (LLM) and retrieves a response. It's useful for tasks like generating content, answering questions, or summarizing text. Example: `response = llm_call_remote("Generate a summary of this text.")`
 <!-- END summary: remote_llm.py -->
 
 <!-- BEGIN summary: prompts.py -->
@@ -232,18 +232,18 @@ These functions are designed to be used in various scenarios, such as generating
 ## readme_sync.py
 
 **For Non-Technical Readers:**
-This Python script is a tool that helps keep documentation up-to-date by summarizing code files and updating README.md files accordingly. It's like having an assistant that reads through your code, understands what it does, and writes a summary for you. This is useful for developers who want to maintain clear and accurate documentation for their projects without the manual effort.
+This software file is part of a tool designed to manage and document codebases by generating summaries of code files and updating a project's main documentation file (README.md). It helps developers and users understand the purpose and functionality of different parts of a project. The tool can automatically scan files, identify key components, and create concise summaries, making it easier to maintain and navigate complex projects.
 
 PRIMARY TECHNICAL RESPONSIBILITY FROM A USER PERSPECTIVE:
-The script is designed to process code files, generate summaries, and update README.md files. It can be used in various scenarios, including automated environments like CI/CD pipelines.
+The file is primarily responsible for providing functionalities that enable the summarization of code files and the management of a project's README.md file. It includes functions for generating timestamps, logging messages, processing file paths, and updating the README file with summaries of code files.
 
 KEY USER-FACING COMPONENTS AND USAGE:
-- **`process_paths`**: Processes a list of file or directory paths, cleans up README files, and summarizes eligible files using a chosen LLM mode.
-  - Example: `process_paths([Path("file1.py"), Path("dir1")], Path("/project/root"), False, None)`
-- **`process_single_file`**: Processes a single file by generating a summary and injecting it into the nearest README.md file.
-  - Example: `process_single_file(Path("/path/to/script.py"), "local")`
-- **`main`**: The entry point for the command-line tool that processes code files and generates or updates documentation.
-  - Example: `python script_name.py --root /path/to/codebase --non-interactive --llm-mode remote`
-
-These functions are key to understanding how the script interacts with users and how it can be utilized to maintain up-to-date documentation.
+- **`get_timestamp`**: Generates a human-readable timestamp representing the current date and time. Useful for logging events or displaying the current time in applications.
+- **`log_message`**: Logs a message with a timestamp to a specified output stream (default is standard error). Useful for tracking events or debugging.
+- **`is_path_excluded`**: Checks if a given file system path should be excluded based on predefined directory and file patterns. Useful for filtering out unwanted files or directories during processing.
+- **`extract_code_units`**: Extracts meaningful code units (like functions or classes) from a given file based on its type and content. Useful for analyzing or documenting code.
+- **`summarise_file`**: Generates a summary of a given file using a Large Language Model (LLM). Useful for understanding the file's purpose and key components.
+- **`process_paths`**: Processes a list of file paths to identify files for summarization, generates summaries, and updates the corresponding README.md files. Useful for maintaining documentation across multiple files or directories.
+- **`process_single_file`**: Processes a single file by generating a summary and updating the relevant README.md file. Useful for automated environments like CI/CD pipelines.
+- **`main`**: The entry point for a command-line interface that allows users to customize how files are processed within a codebase. Useful for developers who need to manage or update multiple files within their projects.
 <!-- END summary: readme_sync.py -->
