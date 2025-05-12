@@ -1045,7 +1045,9 @@ def process_paths(
                 "Please set TOGETHER_API_KEY or choose local mode (if interactive) or ensure key is in environment (if non-interactive)."
             )
             return  # Abort if API key is missing for remote mode
-        DEFAULT_MAX_WORKERS_ACTUAL = 4
+        DEFAULT_MAX_WORKERS_ACTUAL = (
+            6  # Increased from 4 to 6 for better performance with remote LLM
+        )
         MAX_WORKERS = int(
             os.getenv("REMOTE_MAX_WORKERS", str(DEFAULT_MAX_WORKERS_ACTUAL))
         )
