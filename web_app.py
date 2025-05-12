@@ -163,7 +163,7 @@ def generate():
         web_log(f"WEB_APP: Starting generate endpoint")
         ensure_readme_sync_tokenizer_initialized()
         rel_path = request.form.get("path")
-        llm_mode_choice = request.form.get("llm_mode", "1")
+        llm_mode_choice = request.form.get("llm_mode", "2")  # Default to remote (2)
 
         web_log(f"WEB_APP: Processing file {rel_path} with LLM mode {llm_mode_choice}")
 
@@ -287,7 +287,7 @@ def process_project():
     try:
         web_log(f"WEB_APP: Starting process-project endpoint")
         ensure_readme_sync_tokenizer_initialized()
-        llm_mode_choice = request.form.get("llm_mode", "1")
+        llm_mode_choice = request.form.get("llm_mode", "2")  # Default to remote (2)
         web_log(f"WEB_APP: Using LLM mode {llm_mode_choice}")
 
         if llm_mode_choice == "2" and not readme_sync.remote_llm.TOGETHER_API_KEY:

@@ -104,6 +104,12 @@ function setupLogStream() {
 document.addEventListener('DOMContentLoaded', setupLogStream);
 
 document.addEventListener('DOMContentLoaded', function() {
+  // Initialize all llm_mode_input fields with the current dropdown value
+  const selectedLlmMode = document.getElementById('llm_mode_select').value;
+  document.querySelectorAll('.llm_mode_input').forEach(input => {
+    input.value = selectedLlmMode;
+  });
+
   const projectForm = document.querySelector('.process-project-form');
   if (projectForm) {
       projectForm.addEventListener('submit', async function(event) {
