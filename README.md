@@ -157,28 +157,66 @@ python web_app.py  # then open http://localhost:5000
 <!-- BEGIN summary: web_app.py -->
 ## web_app.py
 
-PRIMARY TECHNICAL RESPONSIBILITY FROM A USER PERSPECTIVE:
-This file provides logging, project file management, and README.md generation functionalities, enabling users to monitor and document their projects effectively.
+## PRIMARY TECHNICAL RESPONSIBILITY FROM A USER PERSPECTIVE:
+The file appears to be a part of a web application responsible for managing and processing project files, generating summaries, and updating README.md files. It provides a user interface for interacting with the application's functionality, including logging, file processing, and real-time log monitoring.
 
-KEY USER-FACING COMPONENTS AND USAGE:
-- **`web_log`**: Logs messages to both the standard error stream and an internal buffer for potential UI display, allowing users to record significant events or errors.
-- **`capture_stderr_globally`**: Captures stderr output globally while still displaying it on the actual stderr, enabling users to inspect or log the output as needed within a `with` statement.
-- **`get_project_files`**: Retrieves a list of project files from a specified root directory based on supported file extensions and exclusion rules, useful for tasks like documentation generation or code analysis.
-- **`index`**: Generates and returns an HTML response displaying a list of project files, typically called when a user accesses the root path of the application.
-- **`generate`**: Generates a summary for a specified file and injects it into the corresponding README.md file, usually called via a web request with the file path and desired LLM mode.
-- **`process_project`**: Processes project files, generating summaries and updating README.md files accordingly, typically initiated via a web request.
-- **`log_stream`**: Provides a stream of logs as server-sent events, allowing users to receive real-time updates on logs and processing status.
+## KEY USER-FACING COMPONENTS AND USAGE:
+- **`web_log` function**: Logs messages with timestamps for both server logging and UI display. Users can utilize this function to record significant events or errors within the application. Example: `web_log("Server started successfully.")`
+- **`capture_stderr_globally` function**: A context manager that captures stderr output while still printing it to the actual stderr, allowing users to inspect or log stderr output. Example: `with capture_stderr_globally() as buffer: some_function_that_writes_to_stderr()`
+- **`ensure_readme_sync_tokenizer_initialized` function**: Initializes the `readme_sync._TOKEN_ENCODING` variable if not already set, ensuring the tokenizer is ready for use. Users can call this function to guarantee tokenizer initialization. Example: `ensure_readme_sync_tokenizer_initialized()`
+- **`get_project_files` function**: Retrieves a list of project files from a specified root directory, filtering by file extensions and exclusion rules. Example: `get_project_files(Path("/path/to/project"))`
+- **`index` function**: Handles user requests to the root path, listing project files and rendering an HTML template. 
+- **`generate` function**: A web application endpoint that generates a summary for a specified file and injects it into the corresponding README.md file. Users can call this endpoint with a valid file path and optionally select the LLM mode. Example: `generate(path="/path/to/file", llm_mode="1")`
+- **`process_project` function**: Processes a project by summarizing its files and updating README.md files. Users can call this function via a web request, influencing execution with the `llm_mode` parameter. Example: `process_project(llm_mode="1")`
+- **`log_stream` function**: Provides a server-sent event stream for real-time log monitoring, sending new log entries and processing status updates to connected clients.
 <!-- END summary: web_app.py -->
 
 <!-- BEGIN summary: local_llm.py -->
 ## local_llm.py
 
-PRIMARY TECHNICAL RESPONSIBILITY FROM A USER PERSPECTIVE:
-This file provides functionality for interacting with a local Ollama model, enabling users to send prompts and receive responses, as well as preload the model for efficient parallel processing.
+# File Summary
 
-KEY USER-FACING COMPONENTS AND USAGE:
-- **`llm_call` function**: Sends a prompt to the Ollama model and returns its response. Users can utilize this function to query the model with specific prompts and handle the returned responses or error messages.
-- **`preload_model` function**: Preloads the Ollama model into memory to ensure it's ready for use. Users can call this function to initialize the model before performing other operations and check its success status.
+## PRIMARY TECHNICAL RESPONSIBILITY FROM A USER PERSPECTIVE:
+This file is primarily responsible for integrating with an Ollama LLM server, enabling users to interact with language models through a command-line interface. The main function, `llm_call`, is designed to process prompts and return responses, while the `preload_model` function ensures that necessary models are pre-loaded before processing tasks.
+
+## KEY USER-FACING COMPONENTS AND USAGE:
+### **llm_call (function, Python)**
+- **Purpose:** This function makes a blocking HTTP POST request to an Ollama server using the `httpx` library. It caches responses for repeated prompts and includes error handling and retries with exponential backoff.
+- **Key Actions/Logic:**
+  - **Caching:** Responses are cached globally to improve performance.
+  - **Retries:** The function retries up to a specified number of times, applying an exponential backoff strategy to handle transient issues. Special delays are applied for model loading errors.
+  - **Error Handling:** Comprehensive error handling is implemented for network errors, HTTP status codes, and unexpected exceptions, with detailed logging.
+
+- **Usage Patterns:**
+  - **Basic Usage:** Call `llm_call` with a prompt to get a response from the Ollama server.
+    ```python
+    response = llm_call("What is the capital of France?")
+    print(response)
+    ```
+  - **Error Handling:** Use a try-except block to handle potential errors gracefully.
+    ```python
+    try:
+        result = llm_call("Invalid command")
+    except Exception as e:
+        print(f"Error: {e}")
+    ```
+
+### **preload_model (function, Python)**
+- **Purpose:** This function ensures that specific language models are pre-loaded before starting any parallel processing tasks.
+- **Key Actions/Logic:**
+  - **Retries:** The function attempts to preload the model multiple times with increasing delays between attempts. It handles various exceptions such as HTTP errors and timeouts.
+  - **Error Handling:** Detailed logging is provided to help developers monitor the progress of the preload process and troubleshoot any issues.
+
+- **Usage Patterns:**
+  - **Preloading Models:** Call `preload_model` once to ensure all necessary models are available for processing tasks.
+    ```python
+    if not preload_model():
+        print("Model pre-loading failed")
+    ```
+
+### Additional Notes:
+- The function uses the `httpx` library to communicate with the Ollama server for model loading and request handling.
+- It includes robust error handling mechanisms to manage timeouts and retry logic based on specific error codes, ensuring reliable interaction with the LLM server.
 <!-- END summary: local_llm.py -->
 
 <!-- BEGIN summary: remote_llm.py -->
@@ -217,13 +255,17 @@ KEY USER-FACING COMPONENTS AND USAGE:
 ## readme_sync.py
 
 PRIMARY TECHNICAL RESPONSIBILITY FROM A USER PERSPECTIVE:
-This file provides functionality for generating and managing README.md summaries for code files using Large Language Models (LLMs), enabling users to understand codebases more efficiently.
+This file provides functionality for generating and updating README.md files by summarizing the content of various files using a Large Language Model (LLM). It includes features for processing single files, multiple paths, and directories, as well as handling different LLM modes and interactive or non-interactive processing.
 
 KEY USER-FACING COMPONENTS AND USAGE:
-- **`process_single_file`**: Generates a README.md summary for a specified file using a chosen LLM mode (local or remote). Example: `process_single_file(Path("path/to/file.py"), "local")`.
-- **`process_paths`**: Processes a list of file or directory paths to identify files for summarization, cleans up existing README files, and generates summaries using a chosen LLM mode. Example: `process_paths([Path("file1.py"), Path("dir1")], Path("root_dir"), False, "local")`.
-- **`log_message`**: Logs messages with a timestamp prefix to the standard error stream or a specified file. Example: `log_message("User logged in successfully")`.
-- **`get_timestamp`**: Retrieves the current date and time in a human-readable format. Example: `print(f"Event occurred at: {get_timestamp()}")`.
-- **`summarise_file`**: Generates a summary of a given file based on its content and the chosen LLM mode. Example: `summarise_file(Path("example.py"), "1")`.
-- **`extract_code_units`**: Extracts code units from a given file based on its type and size, adapting to different LLM modes. Example: `extract_code_units(Path("example.py"), "py", "1")`.
+- **`process_paths`**: Processes a list of file or directory paths to update corresponding README.md files by summarizing eligible files using a chosen LLM mode. It handles token counting, cleanup of stale entries, and parallel summarization.
+  - Example: `process_paths([Path("file1.py"), Path("dir1")], Path("root_dir"), False, "local")`
+- **`process_single_file`**: Generates a README.md summary for a specified file without interactive prompts, suitable for automated environments. It processes the file based on its extension and the specified LLM mode.
+  - Example: `process_single_file(Path("script.py"), "local")`
+- **`summarise_file`**: Generates a technical summary of a given file using a specified LLM mode. It analyzes the file's content, breaks it down into processable chunks, and creates a concise summary.
+  - Example: `summarise_file(Path("example.py"), "1")`
+- **`extract_code_units`**: Extracts code units from a given file based on its type and content. It reads the file, determines the appropriate extraction method, and returns a list of code units.
+  - Example: `extract_code_units(Path("example.py"), "py", "1")`
+- **`main`**: Serves as the entry point for the "readme-sync CLI" tool, processing files based on user-provided paths or scanning a specified root directory to generate or update README.md files.
+  - Example: `main(["--root", "/path/to/codebase"])`
 <!-- END summary: readme_sync.py -->
