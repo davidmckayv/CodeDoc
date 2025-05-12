@@ -158,118 +158,89 @@ python web_app.py  # then open http://localhost:5000
 ## web_app.py
 
 **For Non-Technical Readers:**
-This software component is designed to help users understand and manage the content of their project files by providing summaries and real-time log updates. It acts like a personal assistant that keeps track of what's happening in the project, making it easier to navigate and debug. The component is useful for developers and users who need to monitor and understand the activity within their projects.
+This software component is designed to manage and process project files, generate summaries, and maintain a log of events. It's like having a personal assistant that keeps track of project details, helps in understanding the project's structure, and monitors its progress in real-time. This is useful for project maintainers and users who need to stay updated on the project's status and understand its components.
 
-PRIMARY TECHNICAL RESPONSIBILITY FROM A USER PERSPECTIVE:
-The primary purpose of this file is to provide a set of functionalities that enable users to manage and understand their project files. It includes logging important events, capturing error messages, processing project files, generating summaries, and providing real-time log updates.
+**PRIMARY TECHNICAL RESPONSIBILITY FROM A USER PERSPECTIVE:**
+The primary purpose of this file is to provide a set of functionalities that enable project file management, summarization, and real-time logging. It is designed to be used in a web application context, where users can interact with it through a user interface or API.
 
-KEY USER-FACING COMPONENTS AND USAGE:
-- **`web_log` function**: Logs important messages with timestamps, useful for debugging and monitoring the application's performance. Example: `web_log("User successfully logged in.")`
-- **`capture_stderr_globally` function**: Captures error messages while still displaying them to the user, useful for logging or debugging purposes. Example: `with capture_stderr_globally() as stderr_buffer: # Code that might produce stderr output`
-- **`index` function**: Generates a web page listing project files, making it easier for users to navigate through their projects.
-- **`generate` function**: Generates a summary for a given file and updates the corresponding README.md file, helping users understand the file's content. Example: Called via a web request with the file path and LLM mode.
-- **`process_project` function**: Summarizes project files and updates README.md files, making it easier to understand the project's structure and content. Example: Called via a web request with the desired LLM mode.
-- **`log_stream` function**: Provides a continuous stream of log updates, enabling real-time monitoring of the project's activity. Example: Used in a web application to display a live log feed.
+**KEY USER-FACING COMPONENTS AND USAGE:**
+- **`web_log` function**: Logs messages with timestamps, useful for understanding the application's activities and troubleshooting. Example: `web_log("User logged in successfully")`
+- **`capture_stderr_globally` function**: Captures error messages while still displaying them to the user, useful for logging and debugging purposes.
+- **`get_project_files` function**: Retrieves a list of project files based on specified criteria, useful for bulk processing or analysis. Example: `get_project_files(project_root_directory)`
+- **`index` function**: Generates the main page of the web application, listing project files for the user. It's called when a user navigates to the root URL.
+- **`generate` function**: Generates a summary for a given file and updates the corresponding README.md file. Example: `generate(file_path, llm_mode="2")`
+- **`process_project` function**: Processes a project by summarizing its files and updating the README.md. Example: `process_project(llm_mode="2")`
+- **`log_stream` function**: Provides a continuous stream of log updates and status information to the user, useful for real-time monitoring.
 <!-- END summary: web_app.py -->
 
 <!-- BEGIN summary: local_llm.py -->
 ## local_llm.py
 
-# File Summary
+**For Non-Technical Readers:**
+This software component is designed to interact with a language model, a type of artificial intelligence, to generate responses to user queries. It's like having a knowledgeable assistant that can answer questions or provide information on a wide range of topics. The component is made up of two main parts: one that sends requests to the language model and gets responses back, and another that prepares the language model for use by loading it into the computer's memory. This ensures that the model is ready to provide fast and accurate responses when needed.
 
-## PRIMARY TECHNICAL RESPONSIBILITY FROM A USER PERSPECTIVE:
-This file is primarily responsible for integrating with an Ollama LLM server, enabling users to interact with language models through a command-line interface. The main function, `llm_call`, is designed to process prompts and return responses, while the `preload_model` function ensures that necessary models are pre-loaded before processing tasks.
+PRIMARY TECHNICAL RESPONSIBILITY FROM A USER PERSPECTIVE:
+The primary role of this file is to facilitate interaction with a language model by providing a reliable way to send requests and get responses, as well as to preload the model into memory for efficient use. This is crucial for applications that rely on the language model for their core functionality, such as chatbots or conversational interfaces.
 
-## KEY USER-FACING COMPONENTS AND USAGE:
-### **llm_call (function, Python)**
-- **Purpose:** This function makes a blocking HTTP POST request to an Ollama server using the `httpx` library. It caches responses for repeated prompts and includes error handling and retries with exponential backoff.
-- **Key Actions/Logic:**
-  - **Caching:** Responses are cached globally to improve performance.
-  - **Retries:** The function retries up to a specified number of times, applying an exponential backoff strategy to handle transient issues. Special delays are applied for model loading errors.
-  - **Error Handling:** Comprehensive error handling is implemented for network errors, HTTP status codes, and unexpected exceptions, with detailed logging.
-
-- **Usage Patterns:**
-  - **Basic Usage:** Call `llm_call` with a prompt to get a response from the Ollama server.
-    ```python
-    response = llm_call("What is the capital of France?")
-    print(response)
-    ```
-  - **Error Handling:** Use a try-except block to handle potential errors gracefully.
-    ```python
-    try:
-        result = llm_call("Invalid command")
-    except Exception as e:
-        print(f"Error: {e}")
-    ```
-
-### **preload_model (function, Python)**
-- **Purpose:** This function ensures that specific language models are pre-loaded before starting any parallel processing tasks.
-- **Key Actions/Logic:**
-  - **Retries:** The function attempts to preload the model multiple times with increasing delays between attempts. It handles various exceptions such as HTTP errors and timeouts.
-  - **Error Handling:** Detailed logging is provided to help developers monitor the progress of the preload process and troubleshoot any issues.
-
-- **Usage Patterns:**
-  - **Preloading Models:** Call `preload_model` once to ensure all necessary models are available for processing tasks.
-    ```python
-    if not preload_model():
-        print("Model pre-loading failed")
-    ```
-
-### Additional Notes:
-- The function uses the `httpx` library to communicate with the Ollama server for model loading and request handling.
-- It includes robust error handling mechanisms to manage timeouts and retry logic based on specific error codes, ensuring reliable interaction with the LLM server.
+KEY USER-FACING COMPONENTS AND USAGE:
+- **`llm_call` (Function)**: This function is used to send a prompt or question to the language model and retrieve a response. It is designed to be reliable, with features like caching responses to avoid redundant requests, retrying failed requests, and logging attempts for debugging. A user can call this function with a specific question or prompt, such as `llm_call("What is the capital of France?")`, to get a response from the language model.
+- **`preload_model` (Function)**: This function is used to load the language model into memory before it's actually needed, ensuring it's ready for use without delay. It's particularly useful for initializing a system or application that relies on the language model. A developer might call `preload_model()` at the start of their application to preload the model. The function returns a boolean value indicating whether the preloading was successful.
 <!-- END summary: local_llm.py -->
 
 <!-- BEGIN summary: remote_llm.py -->
 ## remote_llm.py
 
-PRIMARY TECHNICAL RESPONSIBILITY FROM A USER PERSPECTIVE:
-This file provides functionality for logging, timestamping, and interacting with the OpenAI API using the Together API settings, enabling users to log messages, generate timestamps, and create content using AI models.
+**For Non-Technical Readers:**
+This file provides a set of tools that help applications interact with AI services, log important events, and track when these events happen. Imagine having a personal assistant that not only helps you with tasks but also keeps a record of everything that's happening, including the time it happens. It's useful for making applications more informative, efficient, and reliable.
 
-KEY USER-FACING COMPONENTS AND USAGE:
-- **`get_timestamp()`**: Retrieves the current date and time in a human-readable format ("YYYY-MM-DD HH:MM:SS"), useful for logging or displaying the current time to users. Users can call this function to get the current timestamp.
-- **`log_message(message, file=sys.stderr)`**: Logs a message with a timestamp prefix to the standard error stream or a specified file, typically for tracking events or debugging purposes. Users can call this function to log messages.
-- **`get_openai_client()`**: Retrieves an OpenAI client instance configured with the Together API settings, allowing users to interact with the OpenAI API. Users typically call this function to initialize the OpenAI client for making API requests.
-- **`llm_call_remote(prompt, model_name=None)`**: Makes a blocking call to the Together AI API to generate content based on a given prompt, utilizing caching and retries. Users can call this function to obtain generated content for their specific prompts.
+**PRIMARY TECHNICAL RESPONSIBILITY FROM A USER PERSPECTIVE:**
+The file is primarily responsible for facilitating interactions with AI models, logging messages with timestamps, and generating timestamps. It acts as a bridge between the application and external services like OpenAI, while also providing essential logging and timestamping functionalities.
+
+**KEY USER-FACING COMPONENTS AND USAGE:**
+- **`get_timestamp`**: Generates the current date and time in a human-readable format. It's used for logging, data tracking, or displaying the current time to users. Example: `timestamp = get_timestamp(); print(f"Event logged at: {timestamp}")`
+- **`log_message`**: Logs messages with timestamps. It's typically used for recording events or errors in an application. Example: `log_message("An error occurred while processing the request.")`
+- **`get_openai_client`**: Creates and returns a client object to interact with OpenAI services. It's used for generating text, answering questions, or other AI-related tasks. Example: `client = get_openai_client(); response = client.completions.create(...)`
+- **`llm_call_remote`**: Sends a prompt to a remote AI model and receives a response. It's useful for generating content, describing technical concepts, or creating examples. Example: `response = llm_call_remote("Describe the purpose of this code.")`
 <!-- END summary: remote_llm.py -->
 
 <!-- BEGIN summary: prompts.py -->
 ## prompts.py
 
 **For Non-Technical Readers:**
-This file provides a set of functions designed to generate summaries and documentation for code files in a user-friendly format. It's like having a tool that helps explain complex code in simple terms, making it easier for developers and users to understand the code's purpose and functionality. The summaries generated are useful for creating README.md files, documenting code, and facilitating the integration of software components.
+This file contains a collection of functions designed to generate summaries and documentation for code files in a user-friendly format. It's like having a tool that helps explain complex code in simple terms, making it easier for both technical and non-technical users to understand the code's purpose and functionality.
 
 PRIMARY TECHNICAL RESPONSIBILITY FROM A USER PERSPECTIVE:
-The primary purpose of this file is to provide a collection of functions that assist in generating user-centric documentation and summaries for code files. These functions take into account the code's structure, functionality, and user-facing aspects to create comprehensive overviews.
+The primary purpose of this file is to provide a set of functions that generate Markdown summaries and documentation templates for code files, focusing on user-facing aspects and making complex code more accessible.
 
 KEY USER-FACING COMPONENTS AND USAGE:
-- **`get_llm_extract_generic_units_prompt`**: Generates a prompt for a Large Language Model to extract top-level code units from a given source code snippet. Users provide the language name, file path, file extension, and source code snippet, and the function returns a formatted prompt.
-- **`get_python_syntax_error_prompt`**: Creates a Markdown assessment for a Python code snippet with syntax errors, providing a best-effort analysis of the code's structure and purpose. Users can call this function with the file name, language extension, and code snippet to receive a formatted Markdown report.
-- **`get_python_module_prompt`**: Generates a Markdown summary for a given Python module code snippet, focusing on its functionality and usage. Users provide the module kind, name, language extension, and source code snippet.
-- **`get_python_class_prompt`**: Creates a Markdown summary template for a given Python class, focusing on its public API and user interaction. Users provide the class kind, name, language extension, and source code snippet.
-- **`get_python_function_prompt`**: Generates a Markdown summary template for a given Python function or method, including sections for non-technical explanations, purpose, parameters, return values, and usage examples. Users provide the function kind, name, language extension, and source code snippet.
-- **`get_generic_unit_prompt`**: Creates a Markdown template for documenting a code unit (like a function, class, or script), providing a structured format that includes explanations of the code's purpose, interface, and typical use cases. Users provide the language extension, code unit kind, name, and source code snippet.
-- **`get_file_chunk_prompt`**: Generates a prompt for summarizing a specific chunk of code from a file, focusing on its purpose and key operations. Users provide the file path, code chunk name, language extension, and source code snippet.
-- **`get_default_file_summary_prompt`**: Creates a structured Markdown overview for a README.md file, focusing on a file's purpose, key functionalities, typical usage, and external dependencies. Users provide the file name, language extension, and source code snippet.
-- **`get_rollup_prompt`**: Consolidates a list of text descriptions about different parts of a software file into a comprehensive Markdown summary, focusing on user-facing aspects. Users provide a list of text blurbs.
-- **`get_direct_summary_retry_prompt`**: Generates a Markdown prompt for creating a comprehensive summary for a given code file, emphasizing user-facing components and usage. Users provide the file path, file extension, and a snippet of the file's content.
+- **`get_llm_extract_generic_units_prompt`**: Generates a prompt to help a system understand and extract important code structures from a given piece of source code. It guides the system to identify top-level code units such as functions, classes, or methods.
+- **`get_python_syntax_error_prompt`**: Creates a Markdown-formatted report for a Python code snippet with syntax errors, helping users understand what's wrong and how to fix it.
+- **`get_python_module_prompt`**: Generates a Markdown summary for a Python module, explaining its purpose, key features, and typical usage scenarios.
+- **`get_python_class_prompt`**: Creates a Markdown template for documenting a Python class, including its purpose, key attributes, inheritance, public methods, and primary use cases.
+- **`get_python_function_prompt`**: Generates a Markdown summary for a Python function or method, detailing its purpose, parameters, return values, and typical use cases.
+- **`get_generic_unit_prompt`**: Creates a Markdown template for documenting a code unit (like a function, class, or script) in a user-friendly way, adjusting its output based on the type of code unit.
+- **`get_file_chunk_prompt`**: Generates a structured prompt for summarizing a specific part of a code file, focusing on its main tasks and how it fits into the larger file.
+- **`get_default_file_summary_prompt`**: Creates a structured Markdown overview for a README.md file, focusing on aspects relevant to users or integrators.
+- **`get_rollup_prompt`**: Generates a comprehensive Markdown summary of a software file based on provided text blurbs, focusing on user-facing aspects.
+- **`get_direct_summary_retry_prompt`**: Creates a structured prompt for summarizing a code file, highlighting its main technical purpose and user-facing components.
 <!-- END summary: prompts.py -->
 
 <!-- BEGIN summary: readme_sync.py -->
 ## readme_sync.py
 
+**For Non-Technical Readers:**
+This software helps manage and document code files within a project by generating summaries and updating a README file. It's like having an assistant that keeps track of what each part of your project does and ensures the documentation is up-to-date. This is useful for developers working on large projects, as it makes it easier to understand the project's structure and components.
+
 PRIMARY TECHNICAL RESPONSIBILITY FROM A USER PERSPECTIVE:
-This file provides functionality for generating and updating README.md files by summarizing the content of various files using a Large Language Model (LLM). It includes features for processing single files, multiple paths, and directories, as well as handling different LLM modes and interactive or non-interactive processing.
+The primary purpose of this code is to process files within a project, generate summaries of their content, and update a README file with these summaries. It is designed to be flexible, allowing users to choose between different modes of operation (interactive or non-interactive) and different methods for generating summaries (local or remote Large Language Models).
 
 KEY USER-FACING COMPONENTS AND USAGE:
-- **`process_paths`**: Processes a list of file or directory paths to update corresponding README.md files by summarizing eligible files using a chosen LLM mode. It handles token counting, cleanup of stale entries, and parallel summarization.
-  - Example: `process_paths([Path("file1.py"), Path("dir1")], Path("root_dir"), False, "local")`
-- **`process_single_file`**: Generates a README.md summary for a specified file without interactive prompts, suitable for automated environments. It processes the file based on its extension and the specified LLM mode.
+- **`process_paths`**: This function processes a list of file or directory paths, summarizing eligible files and updating README files accordingly. It's useful for batch processing multiple files or directories.
+  - Example: `process_paths([Path("file1.py"), Path("dir1")], Path("/project/root"), False, "local")`
+- **`process_single_file`**: This function generates a summary for a single specified file and updates the corresponding README.md file. It's useful for automating the documentation process for individual files.
   - Example: `process_single_file(Path("script.py"), "local")`
-- **`summarise_file`**: Generates a technical summary of a given file using a specified LLM mode. It analyzes the file's content, breaks it down into processable chunks, and creates a concise summary.
-  - Example: `summarise_file(Path("example.py"), "1")`
-- **`extract_code_units`**: Extracts code units from a given file based on its type and content. It reads the file, determines the appropriate extraction method, and returns a list of code units.
-  - Example: `extract_code_units(Path("example.py"), "py", "1")`
-- **`main`**: Serves as the entry point for the "readme-sync CLI" tool, processing files based on user-provided paths or scanning a specified root directory to generate or update README.md files.
-  - Example: `main(["--root", "/path/to/codebase"])`
+- **`main`**: This is the entry point for the command-line tool, allowing users to configure how they want to process their codebase's README files. It supports various parameters for customizing the processing behavior.
+  - Example: `main(["--root", "/path/to/codebase"])` or `main(["--single-file-mode", "/path/to/file1"])`
+
+These components work together to provide a flexible and automated way to keep project documentation up-to-date and accurate.
 <!-- END summary: readme_sync.py -->
